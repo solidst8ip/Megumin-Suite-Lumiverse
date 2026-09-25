@@ -1345,13 +1345,33 @@ describe("Megumin image provider audit", () => {
     expect(liveBackend).toContain("connection_id: connection.id");
   });
 
-  test("the provider path binds the workflow on the frontend and ships it to the backend", () => {
-    // SwarmUI executes parameters.workflow through /ComfyBackendDirect, so the
-    // bound workflow — not just the prompt text — must ride along.
+  test("the provider path only ships the workflow when explicitly enabled", () => {
+    // SwarmUI executes parameters.workflow through its Comfy backend. A
+    // provider whose Comfy backend is down hangs on it forever — while plain
+    // prompt generation keeps working (as Lumiverse's built-in generator
+    // proves). So the workflow rides along only when the user opts in; the
+    // default path sends prompt/size/sampler fields exactly like the built-in.
     expect(liveImagegen).toContain("export async function igGenerateViaProvider");
-    expect(liveImagegen).toContain("parameters: {");
-    expect(liveImagegen).toMatch(/parameters:\s*\{[^}]*workflow/s);
+    expect(liveImagegen).toMatch(/if\s*\(\s*s\.sendWorkflow\s*\)/);
+    expect(liveImagegen).toMatch(/parameters\.workflow\s*=\s*workflow/);
     expect(liveImagegen).toContain('call("image:generate"');
+  });
+
+  test("the send-workflow toggle is persisted and defaults to off", () => {
+    const liveDefaults = readFileSync(new URL("./defaults.ts", import.meta.url), "utf8");
+    expect(liveDefaults).toMatch(/sendWorkflow:\s*false/);
+    expect(liveImagegen).toContain('id="ig_send_workflow_card"');
+    expect(liveImagegen).toMatch(/s\.sendWorkflow\s*=\s*!s\.sendWorkflow/);
+  });
+
+  test("the backend never leaves image:generate hanging on a stuck provider", () => {
+    // spindle.imageGen.generate has no timeout of its own. Without a guard a
+    // dead provider backend hangs the RPC forever and the frontend only ever
+    // sees "did not answer". The backend races the call against a deadline
+    // inside the frontend's 300s so it always answers with a real error.
+    expect(liveBackend).toMatch(/PROVIDER_TIMEOUT_MS\s*=\s*270000/);
+    expect(liveBackend).toMatch(/Promise\.race\(\[[\s\S]*?spindle\.imageGen\.generate/);
+    expect(liveBackend).toMatch(/did not respond within/);
   });
 
   test("direct ComfyUI and provider paths share one prompt/workflow/insert pipeline", () => {

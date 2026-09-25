@@ -95,6 +95,13 @@ export function renderImageGen(c) {
                         <option value="">Loading…</option>
                     </select>
                 </div>
+                <div class="mtab-toggle-row ${s.sendWorkflow ? 'active' : ''}" id="ig_send_workflow_card" style="padding: 10px 14px; margin-bottom: 10px;">
+                    <div class="toggle-info">
+                        <div class="toggle-label" style="font-size:0.8rem;">Send workflow to provider</div>
+                        <div class="toggle-desc">Ship the tab's bound ComfyUI workflow for the provider to execute (needs its Comfy backend healthy). Off = plain prompt generation, like Lumiverse's built-in generator.</div>
+                    </div>
+                    <div class="toggle-switch"></div>
+                </div>
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <input type="text" id="ig_url" class="ps-modern-input" value="${s.comfyUrl}" placeholder="http://127.0.0.1:8188" style="flex: 1;" />
                     <button id="ig_test_btn" class="ps-modern-btn secondary" style="padding: 0 15px;"><i class="fa-solid fa-wifi"></i> Test</button>
@@ -402,6 +409,11 @@ export function renderImageGen(c) {
         s.connectionId = $(e.target).val() || "";
         saveProfileToMemory();
         igRefreshProviderBadge();
+    });
+    $("#ig_send_workflow_card").on("click", function () {
+        s.sendWorkflow = !s.sendWorkflow;
+        $(this).toggleClass("active", !!s.sendWorkflow);
+        saveProfileToMemory();
     });
     $("#ig_trigger_mode").on("change", (e) => {
         s.triggerMode = $(e.target).val();
@@ -1396,26 +1408,34 @@ export async function igGenerateViaProvider(positivePrompt, conn, target = null)
         }
 
         let workflow;
-        try {
-            ({ workflow } = await igLoadAndBindWorkflow(finalPrompt));
-        } catch (e) { $("#kazuma_progress_overlay").hide(); return toastr.error(e.message); }
+        if (s.sendWorkflow) {
+            try {
+                ({ workflow } = await igLoadAndBindWorkflow(finalPrompt));
+            } catch (e) { $("#kazuma_progress_overlay").hide(); return toastr.error(e.message); }
+        }
 
         showKazumaProgress(`Generating on ${conn.provider}...`);
         const saveTarget = igResolveSaveTarget();
+        const parameters = {
+            model: s.selectedModel || undefined,
+            width: s.imgWidth,
+            height: s.imgHeight,
+            steps: s.steps,
+            cfg: s.cfg,
+        };
+        if (s.sendWorkflow) {
+            // The workflow carries the bound prompt, seed, sampler,
+            // checkpoint, LoRAs, and latent size — the provider runs it as-is
+            // through its Comfy backend. Only sent when explicitly enabled:
+            // a provider whose Comfy backend is down will hang on it, while
+            // plain prompt generation keeps working.
+            parameters.workflow = workflow;
+        }
         const res = await call("image:generate", {
             prompt: finalPrompt,
             negativePrompt: s.customNegative || "",
             connectionId: conn.id,
-            parameters: {
-                // The workflow carries the bound prompt, seed, sampler,
-                // checkpoint, LoRAs, and latent size — the provider runs it as-is.
-                workflow,
-                model: s.selectedModel || undefined,
-                width: s.imgWidth,
-                height: s.imgHeight,
-                steps: s.steps,
-                cfg: s.cfg,
-            },
+            parameters,
             ownerCharacterId: saveTarget.characterId || undefined,
         }, { timeoutMs: 300000 });
 

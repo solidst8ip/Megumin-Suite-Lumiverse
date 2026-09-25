@@ -413,18 +413,38 @@ handle("image:connections", async (_data, userId) => {
 handle("image:generate", async ({ prompt, negativePrompt, connectionId, parameters, ownerCharacterId, ownerChatId }, userId) => {
     const connection = await igResolveConnection(connectionId, userId);
     if (!connection) throw new Error("No image connection available.");
-    const result = await spindle.imageGen.generate({
-        prompt,
-        connection_id: connection.id,
-        model: parameters?.model || undefined,
-        negativePrompt: negativePrompt || undefined,
-        parameters: parameters || {},
-        // Ownership tags the asset with the character/chat it was made for,
-        // the same way comfy:image tags the direct path's downloads.
-        owner_character_id: ownerCharacterId || undefined,
-        owner_chat_id: ownerChatId || await getActiveChatId(userId) || undefined,
-        userId,
+    // The host call has no timeout of its own: if the provider's backend is
+    // down it can hang forever, and the frontend would only ever see "did not
+    // answer". Race it against a deadline comfortably inside the frontend's
+    // 300s so a stuck provider surfaces as a real, actionable error instead.
+    const PROVIDER_TIMEOUT_MS = 270000;
+    let timeoutId;
+    const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(
+            `The ${connection.provider || "image"} provider did not respond within ${Math.round(PROVIDER_TIMEOUT_MS / 1000)}s. ` +
+            `Its backend may be down or unreachable — check it in the provider's own UI, then try again.`
+        )), PROVIDER_TIMEOUT_MS);
     });
+    let result;
+    try {
+        result = await Promise.race([
+            spindle.imageGen.generate({
+                prompt,
+                connection_id: connection.id,
+                model: parameters?.model || undefined,
+                negativePrompt: negativePrompt || undefined,
+                parameters: parameters || {},
+                // Ownership tags the asset with the character/chat it was made for,
+                // the same way comfy:image tags the direct path's downloads.
+                owner_character_id: ownerCharacterId || undefined,
+                owner_chat_id: ownerChatId || await getActiveChatId(userId) || undefined,
+                userId,
+            }),
+            timeout,
+        ]);
+    } finally {
+        clearTimeout(timeoutId);
+    }
     return {
         imageDataUrl: result?.imageDataUrl || null,
         imageId: result?.imageId || null,

@@ -110,7 +110,8 @@ export interface ImageGenSettings {
   comfyUrl: string;
   currentWorkflowName: string;
   savedWorkflowStates: Record<string, Partial<ImageGenSettings>>;
-  connectionId: string;
+  connectionId: string;
+  sendWorkflow: boolean;
   selectedModel: string;
   selectedSampler: string;
   scheduler: string;

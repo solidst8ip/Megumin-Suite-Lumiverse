@@ -104,6 +104,7 @@ export const DEFAULT_PROFILE: MeguminProfile = {
     currentWorkflowName: "",
     savedWorkflowStates: {},
     connectionId: "",
+    sendWorkflow: false,
     selectedModel: "",
     selectedSampler: "euler",
     scheduler: "",

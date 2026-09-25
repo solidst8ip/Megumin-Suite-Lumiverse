@@ -8454,16 +8454,29 @@ handle("image:generate", async ({ prompt, negativePrompt, connectionId, paramete
   const connection = await igResolveConnection(connectionId, userId);
   if (!connection)
     throw new Error("No image connection available.");
-  const result = await spindle.imageGen.generate({
-    prompt,
-    connection_id: connection.id,
-    model: parameters?.model || undefined,
-    negativePrompt: negativePrompt || undefined,
-    parameters: parameters || {},
-    owner_character_id: ownerCharacterId || undefined,
-    owner_chat_id: ownerChatId || await getActiveChatId(userId) || undefined,
-    userId
+  const PROVIDER_TIMEOUT_MS = 270000;
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`The ${connection.provider || "image"} provider did not respond within ${Math.round(PROVIDER_TIMEOUT_MS / 1000)}s. ` + `Its backend may be down or unreachable \u2014 check it in the provider's own UI, then try again.`)), PROVIDER_TIMEOUT_MS);
   });
+  let result;
+  try {
+    result = await Promise.race([
+      spindle.imageGen.generate({
+        prompt,
+        connection_id: connection.id,
+        model: parameters?.model || undefined,
+        negativePrompt: negativePrompt || undefined,
+        parameters: parameters || {},
+        owner_character_id: ownerCharacterId || undefined,
+        owner_chat_id: ownerChatId || await getActiveChatId(userId) || undefined,
+        userId
+      }),
+      timeout
+    ]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
   return {
     imageDataUrl: result?.imageDataUrl || null,
     imageId: result?.imageId || null,
