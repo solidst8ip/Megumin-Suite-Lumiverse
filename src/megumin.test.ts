@@ -1386,4 +1386,13 @@ describe("Megumin image provider audit", () => {
     expect(liveDebug).toContain("igGenerateImage(");
     expect(liveDebug).not.toContain("igGenerateWithComfy(");
   });
+
+  test("the provider generation call gives the backend minutes, not the 60s default", () => {
+    // The RPC bridge reads `timeoutMs` — a bare `timeout` is silently ignored
+    // and the call falls back to the 60s default, which image generation
+    // routinely exceeds. This pins the exact option name.
+    expect(liveImagegen).toContain('call("image:generate"');
+    expect(liveImagegen).toMatch(/call\("image:generate"[\s\S]*?timeoutMs:\s*300000/);
+    expect(liveImagegen).not.toMatch(/call\("image:[a-z]*"[^;]*?\{ timeout:/);
+  });
 });

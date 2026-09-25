@@ -540,7 +540,7 @@ export function renderImageGen(c) {
 async function igGetActiveImageConnection() {
     try {
         const s = localProfile.imageGen;
-        const conns = await call("image:connections", {}, { timeout: 15000 });
+        const conns = await call("image:connections", {}, { timeoutMs: 15000 });
         if (!Array.isArray(conns) || !conns.length) return null;
         if (s.connectionId) {
             const match = conns.find(c => c.id === s.connectionId);
@@ -659,7 +659,7 @@ export async function igPopulateConnections() {
     const s = localProfile.imageGen;
     let conns = [];
     try {
-        conns = await call("image:connections", {}, { timeout: 15000 }) || [];
+        conns = await call("image:connections", {}, { timeoutMs: 15000 }) || [];
     } catch (e) {
         console.warn("[Megumin-Suite] image:connections failed", e);
     }
@@ -1417,7 +1417,7 @@ export async function igGenerateViaProvider(positivePrompt, conn, target = null)
                 cfg: s.cfg,
             },
             ownerCharacterId: saveTarget.characterId || undefined,
-        }, { timeout: 300000 });
+        }, { timeoutMs: 300000 });
 
         if (!res || !res.imageDataUrl) throw new Error(res?.error || "The provider returned no image.");
 
