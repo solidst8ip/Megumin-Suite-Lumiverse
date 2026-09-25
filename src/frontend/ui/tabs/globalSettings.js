@@ -8,6 +8,8 @@ import { localProfile } from "../../core/state.js";
 import { initProfile, saveProfileToMemory } from "../../core/profile.js";
 import { flushProfileSettingsToLoadedKey, _saveProfileDebouncedInner } from "../../core/profile.js";
 import { cancelDebounce } from "../../host.js";
+import { call } from "../../bridge.js";
+import { downloadJsonFile } from "../../utils/download.js";
 
 // The version on the about card. One place, so it cannot fall out of step with
 // itself the way "v9" did once V10 shipped.
@@ -104,6 +106,28 @@ export function renderGlobalSettings(c) {
         </div>
     `);
 
+    // ── BACKUP & RESTORE ────────────────────────────────────────────────────
+    // One file holding everything: settings.json (profiles, image-gen setup)
+    // plus every chat's metadata (story plans, NPC bank). Export it on the old
+    // install, import it here, and the new install picks up exactly where the
+    // old one left off — even when the host did not preserve storage across
+    // the move. Same-identifier installs already share storage; this covers
+    // everything else.
+    $content.append(`<div class="wstyle-section-head purple" style="margin-top:8px;"><i class="fa-solid fa-box-archive"></i> Backup &amp; restore</div>`);
+    $content.append(`
+        <div class="mtab-panel" style="margin: 0; padding: 12px 16px;">
+            <div class="set-info" style="margin-bottom: 10px;">
+                <div class="set-label"><i class="fa-solid fa-box-archive" style="color: #a855f7;"></i> Move settings between installs</div>
+                <div class="set-desc">Exports <b>everything</b> — profiles, image generation setup, story plans and NPC banks for every chat — into one file. Restore that file on the other install to pick up exactly where you left off.</div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button id="gs_backup_export" class="ps-modern-btn secondary"><i class="fa-solid fa-download"></i> Backup settings</button>
+                <button id="gs_backup_import" class="ps-modern-btn secondary"><i class="fa-solid fa-upload"></i> Restore from backup&hellip;</button>
+                <input type="file" id="gs_backup_file" accept="application/json,.json" style="display: none;" />
+            </div>
+        </div>
+    `);
+
     // ── SEND KAZUMA A CARD ──────────────────────────────────────────────────
     // Skipped entirely while the URL is blank. A button that goes nowhere is
     // worse than no button at all.
@@ -166,6 +190,49 @@ export function renderGlobalSettings(c) {
     };
     wireToggle("#gs_toggle_prompt_preview", "promptPreview", "var(--gold)");
     wireToggle("#gs_toggle_utility_prefill", "enableUtilityPrefill", "#10b981");
+
+    $content.find("#gs_backup_export").on("click", async function () {
+        const $btn = $(this);
+        $btn.prop("disabled", true);
+        try {
+            const backup = await call("settings:exportBackup");
+            const stamp = new Date().toISOString().slice(0, 10);
+            downloadJsonFile(`megumin-suite-backup-${stamp}.json`, backup);
+            toastr.success("Backup downloaded.");
+        } catch (e) {
+            toastr.error(`Backup failed: ${e?.message || e}`);
+        } finally {
+            $btn.prop("disabled", false);
+        }
+    });
+
+    $content.find("#gs_backup_import").on("click", () => $content.find("#gs_backup_file").trigger("click"));
+
+    $content.find("#gs_backup_file").on("change", async function () {
+        const file = this.files && this.files[0];
+        this.value = ""; // allow picking the same file twice in a row
+        if (!file) return;
+        let backup;
+        try {
+            backup = JSON.parse(await file.text());
+        } catch (e) {
+            toastr.error("That file is not valid JSON.");
+            return;
+        }
+        if (!backup || backup.format !== "megumin-suite-backup" || !backup.settings) {
+            toastr.error("That file is not a Megumin Suite settings backup.");
+            return;
+        }
+        const chatCount = backup.metadata ? Object.keys(backup.metadata).length : 0;
+        if (!confirm(`Restore this backup?\n\nExported: ${backup.exportedAt || "unknown date"}\nChats included: ${chatCount}\n\nYour current settings will be replaced. This cannot be undone.`)) return;
+        try {
+            const result = await call("settings:importBackup", { backup });
+            toastr.success(`Backup restored (${result.importedChats} chat(s)). Reloading…`);
+            setTimeout(() => location.reload(), 900);
+        } catch (e) {
+            toastr.error(`Restore failed: ${e?.message || e}`);
+        }
+    });
 
     $content.find("#gs_save_mode").on("change", function () {
         // getCharacterKey() reads saveMode, so changing it moves where a save lands. Get any

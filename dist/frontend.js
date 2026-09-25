@@ -4675,7 +4675,7 @@ var require_jquery = __commonJS(function(exports, module) {
         };
       }
     });
-    var location = window2.location;
+    var location2 = window2.location;
     var nonce = { guid: Date.now() };
     var rquery = /\?/;
     jQuery.parseXML = function(data) {
@@ -4868,7 +4868,7 @@ var require_jquery = __commonJS(function(exports, module) {
       }
     });
     var r20 = /%20/g, rhash = /#.*$/, rantiCache = /([?&])_=[^&]*/, rheaders = /^(.*?):[ \t]*([^\r\n]*)$/mg, rlocalProtocol = /^(?:about|app|app-storage|.+-extension|file|res|widget):$/, rnoContent = /^(?:GET|HEAD)$/, rprotocol = /^\/\//, prefilters = {}, transports = {}, allTypes = "*/".concat("*"), originAnchor = document2.createElement("a");
-    originAnchor.href = location.href;
+    originAnchor.href = location2.href;
     function addToPrefiltersOrTransports(structure) {
       return function(dataTypeExpression, func) {
         if (typeof dataTypeExpression !== "string") {
@@ -5019,9 +5019,9 @@ var require_jquery = __commonJS(function(exports, module) {
       lastModified: {},
       etag: {},
       ajaxSettings: {
-        url: location.href,
+        url: location2.href,
         type: "GET",
-        isLocal: rlocalProtocol.test(location.protocol),
+        isLocal: rlocalProtocol.test(location2.protocol),
         global: true,
         processData: true,
         async: true,
@@ -5119,7 +5119,7 @@ var require_jquery = __commonJS(function(exports, module) {
           }
         };
         deferred.promise(jqXHR);
-        s.url = ((url || s.url || location.href) + "").replace(rprotocol, location.protocol + "//");
+        s.url = ((url || s.url || location2.href) + "").replace(rprotocol, location2.protocol + "//");
         s.type = options.method || options.type || s.method || s.type;
         s.dataTypes = (s.dataType || "*").toLowerCase().match(rnothtmlwhite) || [""];
         if (s.crossDomain == null) {
@@ -35761,6 +35761,17 @@ function renderBanList(c) {
   });
 }
 
+// src/frontend/utils/download.js
+function downloadJsonFile(filename, dataObj) {
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataObj, null, 2));
+  const downloadAnchorNode = document.createElement("a");
+  downloadAnchorNode.setAttribute("href", dataStr);
+  downloadAnchorNode.setAttribute("download", filename);
+  document.body.appendChild(downloadAnchorNode);
+  downloadAnchorNode.click();
+  downloadAnchorNode.remove();
+}
+
 // src/frontend/ui/tabs/globalSettings.js
 var SUITE_VERSION = "V10";
 var SUBMIT_FORM_URL = "https://tally.so/r/D46yNq";
@@ -35830,6 +35841,20 @@ function renderGlobalSettings(c) {
             </div>
         </div>
     `);
+  $content.append(`<div class="wstyle-section-head purple" style="margin-top:8px;"><i class="fa-solid fa-box-archive"></i> Backup &amp; restore</div>`);
+  $content.append(`
+        <div class="mtab-panel" style="margin: 0; padding: 12px 16px;">
+            <div class="set-info" style="margin-bottom: 10px;">
+                <div class="set-label"><i class="fa-solid fa-box-archive" style="color: #a855f7;"></i> Move settings between installs</div>
+                <div class="set-desc">Exports <b>everything</b> — profiles, image generation setup, story plans and NPC banks for every chat — into one file. Restore that file on the other install to pick up exactly where you left off.</div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button id="gs_backup_export" class="ps-modern-btn secondary"><i class="fa-solid fa-download"></i> Backup settings</button>
+                <button id="gs_backup_import" class="ps-modern-btn secondary"><i class="fa-solid fa-upload"></i> Restore from backup&hellip;</button>
+                <input type="file" id="gs_backup_file" accept="application/json,.json" style="display: none;" />
+            </div>
+        </div>
+    `);
   if (SUBMIT_FORM_URL) {
     $content.append(`<div class="wstyle-section-head purple" style="margin-top:8px;"><i class="fa-solid fa-paper-plane"></i> Send me a card</div>`);
     $content.append(`
@@ -35881,6 +35906,53 @@ function renderGlobalSettings(c) {
   };
   wireToggle("#gs_toggle_prompt_preview", "promptPreview", "var(--gold)");
   wireToggle("#gs_toggle_utility_prefill", "enableUtilityPrefill", "#10b981");
+  $content.find("#gs_backup_export").on("click", async function() {
+    const $btn = $(this);
+    $btn.prop("disabled", true);
+    try {
+      const backup = await call("settings:exportBackup");
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadJsonFile(`megumin-suite-backup-${stamp}.json`, backup);
+      toastr.success("Backup downloaded.");
+    } catch (e) {
+      toastr.error(`Backup failed: ${e?.message || e}`);
+    } finally {
+      $btn.prop("disabled", false);
+    }
+  });
+  $content.find("#gs_backup_import").on("click", () => $content.find("#gs_backup_file").trigger("click"));
+  $content.find("#gs_backup_file").on("change", async function() {
+    const file = this.files && this.files[0];
+    this.value = "";
+    if (!file)
+      return;
+    let backup;
+    try {
+      backup = JSON.parse(await file.text());
+    } catch (e) {
+      toastr.error("That file is not valid JSON.");
+      return;
+    }
+    if (!backup || backup.format !== "megumin-suite-backup" || !backup.settings) {
+      toastr.error("That file is not a Megumin Suite settings backup.");
+      return;
+    }
+    const chatCount = backup.metadata ? Object.keys(backup.metadata).length : 0;
+    if (!confirm(`Restore this backup?
+
+Exported: ${backup.exportedAt || "unknown date"}
+Chats included: ${chatCount}
+
+Your current settings will be replaced. This cannot be undone.`))
+      return;
+    try {
+      const result = await call("settings:importBackup", { backup });
+      toastr.success(`Backup restored (${result.importedChats} chat(s)). Reloading…`);
+      setTimeout(() => location.reload(), 900);
+    } catch (e) {
+      toastr.error(`Restore failed: ${e?.message || e}`);
+    }
+  });
   $content.find("#gs_save_mode").on("change", function() {
     cancelDebounce(_saveProfileDebouncedInner);
     flushProfileSettingsToLoadedKey();
@@ -38276,17 +38348,6 @@ function renderCustomBlockEditor(c, editId) {
     renderBlocksTab(c);
   });
   c.append(actions);
-}
-
-// src/frontend/utils/download.js
-function downloadJsonFile(filename, dataObj) {
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataObj, null, 2));
-  const downloadAnchorNode = document.createElement("a");
-  downloadAnchorNode.setAttribute("href", dataStr);
-  downloadAnchorNode.setAttribute("download", filename);
-  document.body.appendChild(downloadAnchorNode);
-  downloadAnchorNode.click();
-  downloadAnchorNode.remove();
 }
 
 // src/frontend/features/imagegen/comfyFetch.js

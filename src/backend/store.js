@@ -114,6 +114,82 @@ export async function saveMetadata(chatId, metadata, userId) {
 }
 
 // -------------------------------------------------------------
+// Backup & restore
+// -------------------------------------------------------------
+//
+// Moving between installs of the suite — the original release and a fork, a
+// fresh browser profile, a host that wiped storage on reinstall — needs the
+// whole data set, not just the settings file: profiles and image-gen config
+// live in settings.json, while story plans and the NPC bank live per-chat
+// under metadata/. The frontend's Backup button calls exportBackup and hands
+// the user one JSON file; Restore feeds it to importBackup.
+//
+// Same-identifier installs (the fork keeps "megumin_suite") already share
+// spindle.storage, so this is the belt to those braces: it also covers the
+// cases where the host did not preserve storage across the move.
+
+const BACKUP_FORMAT = "megumin-suite-backup";
+const BACKUP_VERSION = 1;
+
+export async function exportBackup(userId) {
+    const settings = await loadSettings(userId);
+
+    let files = [];
+    try {
+        files = await spindle.storage.list("metadata/").catch(() => []);
+    } catch (e) {
+        files = [];
+    }
+
+    const metadata = {};
+    for (const file of files) {
+        const name = String(file).replace(/^metadata\//, "");
+        if (!name.endsWith(".json")) continue;
+        try {
+            metadata[name.slice(0, -5)] = JSON.parse(await spindle.storage.read(`metadata/${name}`));
+        } catch (e) {
+            // A chat whose metadata does not parse is skipped, not fatal: one
+            // corrupt chat must not void the whole backup.
+        }
+    }
+
+    return {
+        format: BACKUP_FORMAT,
+        version: BACKUP_VERSION,
+        exportedAt: new Date().toISOString(),
+        settings,
+        metadata,
+    };
+}
+
+export async function importBackup(backup, userId) {
+    if (!backup || backup.format !== BACKUP_FORMAT || !backup.settings || typeof backup.settings !== "object") {
+        throw new Error("That file is not a Megumin Suite settings backup.");
+    }
+    const incomingMetadata = backup.metadata && typeof backup.metadata === "object" ? backup.metadata : {};
+
+    // Settings are replaced wholesale, then re-keyed through the same
+    // defaults fill loadSettings applies, so a backup from an older build
+    // still yields a complete settings object.
+    settingsCache = null;
+    await saveSettings(backup.settings, userId);
+    await loadSettings(userId);
+
+    // Per-chat metadata: chats present in the backup overwrite; chats the
+    // backup never saw are left alone.
+    let importedChats = 0;
+    for (const [chatKey, data] of Object.entries(incomingMetadata)) {
+        const stem = String(chatKey).replace(/[^A-Za-z0-9_-]/g, "_");
+        if (!stem || data === null || typeof data !== "object") continue;
+        await spindle.storage.write(`metadata/${stem}.json`, JSON.stringify(data, null, 2));
+        importedChats += 1;
+    }
+
+    spindle.log.info(`[Megumin Suite] backup imported; ${importedChats} chat(s) restored.`);
+    return { ok: true, importedChats };
+}
+
+// -------------------------------------------------------------
 // Active chat
 // -------------------------------------------------------------
 

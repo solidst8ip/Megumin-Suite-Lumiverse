@@ -24,7 +24,7 @@ type HardcodedLogic = {
   modes: EngineMode[];
   personalities: Array<{ id: string; label: string; content: string; recommended?: boolean }>;
   toggles: Record<string, { content: string; trigger: string; label: string }>;
-  addons: Array<{ id: string; label: string; content: string; trigger: string }>;
+  addons: Array<{ id: string; label: string; content: string; trigger: string; rolls?: number }>;
   blocks: Array<{ id: string; label: string; content: string; trigger: string }>;
   models: Array<{ id: string; label?: string; content: string; prefill?: string }>;
 };
@@ -115,7 +115,11 @@ const UNUSED_PLACEHOLDERS = [
   "[[v9_full_min]]",
   "[[v9_full_max]]",
   "[[config]]",
-  "[[blocks]]"
+  "[[blocks]]",
+  "[[user]]",
+  "[[html]]",
+  "[[dice]]",
+  "[[dice_rolls]]"
 ];
 
 export type PlaceholderHookGroup = {
@@ -235,6 +239,25 @@ function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * Roll n fair d20s. Rejection sampling rather than a bare modulo: the bias
+ * from `% 20` over a 32-bit draw is tiny and nobody would ever see it, but a
+ * die advertised as fair should be fair and the correction is one comparison.
+ */
+function rollD20s(n: number): number[] {
+  const count = Math.max(1, Math.min(10, Math.floor(Number(n) || 1)));
+  const out: number[] = [];
+  const limit = Math.floor(0xffffffff / 20) * 20;
+  const buf = new Uint32Array(1);
+  while (out.length < count) {
+    crypto.getRandomValues(buf);
+    const draw = buf[0];
+    if (draw >= limit) continue;
+    out.push((draw % 20) + 1);
+  }
+  return out;
+}
+
 function selectedEngine(profile: MeguminProfile, customEngines: EngineMode[]): EngineMode {
   return allEngines(customEngines).find((mode) => mode.id === profile.mode) || logic.modes[0] || { id: "fallback", label: "Fallback" };
 }
@@ -291,6 +314,15 @@ function buildBaseDict(
     : profile.userPronouns === "female"
       ? "{{user}} is female. Always portray and address her as such."
       : "";
+
+  // [[user]] — the rule telling the model to keep its hands off {{user}}. It is
+  // not an add-on: there is no switch for it, it applies to every engine except
+  // the Co-writer variants, and those are precisely the engines built to write
+  // {{user}}. Sending it to a Co-writer would have one prompt argue with
+  // itself, so the slot is blanked instead of skipped — an unwritten tag would
+  // survive as a literal "[[user]]" if the leak guard ever missed it.
+  const isCoWriter = activeEngine.isCoWriter === true || String(activeEngine.id || "").endsWith("-cw");
+  dict.user = isCoWriter ? "" : "4. NEVER write for or Control {{user}}";
 
   // V9 asks for a length band per response shape rather than one flat maximum, so
   // the single word count is not meaningful for it and is emitted empty.
@@ -449,6 +481,22 @@ function buildBaseDict(
   for (const [source, target, condition] of overrides) {
     const value = activeEngine[source];
     if (condition && typeof value === "string" && value.trim()) dict[target] = value;
+  }
+
+  // Dice numbers are filled in AFTER the override pass, not before. [[dice]]
+  // is an editable add-on now, so a reader can rewrite the dice rules and keep
+  // the [[dice_rolls]] marker: rolling first and overriding second would
+  // replace the filled text with their unfilled copy, and the marker would then
+  // be stripped by the leak guard — the rules would arrive with the numbers
+  // silently missing. Fresh numbers every build, so a swipe re-rolls the turn
+  // rather than rewriting the prose around a die that already landed. Any
+  // add-on that declares a roll count gets this turn's numbers.
+  for (const addonId of profile.addons) {
+    const item = logic.addons.find((addon) => addon.id === addonId);
+    if (!item || !item.rolls) continue;
+    const key = item.trigger.replace(/\[|\]/g, "");
+    if (!dict[key]) continue;
+    dict[key] = dict[key].split("[[dice_rolls]]").join(rollD20s(item.rolls).join(", "));
   }
 
   // The thinking framework is delivered through [[THINK]], wrapped in the <think>

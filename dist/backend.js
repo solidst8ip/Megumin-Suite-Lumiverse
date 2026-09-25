@@ -81,6 +81,52 @@ async function saveMetadata(chatId, metadata, userId) {
     return;
   await spindle.storage.write(metadataPath(chatId), JSON.stringify(metadata || {}, null, 2));
 }
+var BACKUP_FORMAT = "megumin-suite-backup";
+var BACKUP_VERSION = 1;
+async function exportBackup(userId) {
+  const settings = await loadSettings(userId);
+  let files = [];
+  try {
+    files = await spindle.storage.list("metadata/").catch(() => []);
+  } catch (e) {
+    files = [];
+  }
+  const metadata = {};
+  for (const file of files) {
+    const name = String(file).replace(/^metadata\//, "");
+    if (!name.endsWith(".json"))
+      continue;
+    try {
+      metadata[name.slice(0, -5)] = JSON.parse(await spindle.storage.read(`metadata/${name}`));
+    } catch (e) {}
+  }
+  return {
+    format: BACKUP_FORMAT,
+    version: BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    settings,
+    metadata
+  };
+}
+async function importBackup(backup, userId) {
+  if (!backup || backup.format !== BACKUP_FORMAT || !backup.settings || typeof backup.settings !== "object") {
+    throw new Error("That file is not a Megumin Suite settings backup.");
+  }
+  const incomingMetadata = backup.metadata && typeof backup.metadata === "object" ? backup.metadata : {};
+  settingsCache = null;
+  await saveSettings(backup.settings, userId);
+  await loadSettings(userId);
+  let importedChats = 0;
+  for (const [chatKey, data] of Object.entries(incomingMetadata)) {
+    const stem = String(chatKey).replace(/[^A-Za-z0-9_-]/g, "_");
+    if (!stem || data === null || typeof data !== "object")
+      continue;
+    await spindle.storage.write(`metadata/${stem}.json`, JSON.stringify(data, null, 2));
+    importedChats += 1;
+  }
+  spindle.log.info(`[Megumin Suite] backup imported; ${importedChats} chat(s) restored.`);
+  return { ok: true, importedChats };
+}
 var activeChatByUser = new Map;
 var sawSwitchEvent = false;
 function trackActiveChat(userId, chatId) {
@@ -8016,6 +8062,8 @@ async function fetchImage(url, { filename, subfolder = "", type = "output", chat
 // src/backend.js
 handle("settings:load", (_data, userId) => loadSettings(userId));
 handle("settings:save", ({ settings }, userId) => saveSettings(settings, userId));
+handle("settings:exportBackup", (_data, userId) => exportBackup(userId));
+handle("settings:importBackup", ({ backup }, userId) => importBackup(backup, userId));
 handle("metadata:load", async ({ chatId }, userId) => {
   return loadMetadata(chatId || await getActiveChatId(userId), userId);
 });

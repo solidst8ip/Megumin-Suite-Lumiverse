@@ -32,6 +32,8 @@ import { buildBaseDict } from "./shared/engine/buildBaseDict.js";
 import {
     loadSettings,
     saveSettings,
+    exportBackup,
+    importBackup,
     loadMetadata,
     saveMetadata,
     getActiveChatId,
@@ -45,6 +47,13 @@ import {
 handle("settings:load", (_data, userId) => loadSettings(userId));
 
 handle("settings:save", ({ settings }, userId) => saveSettings(settings, userId));
+
+// Full-fidelity backup & restore (settings.json + every chat's metadata).
+// The fork keeps the "megumin_suite" identifier so a same-identifier install
+// already shares storage; these cover every other move — fresh profile,
+// wiped storage, or a renamed fork.
+handle("settings:exportBackup", (_data, userId) => exportBackup(userId));
+handle("settings:importBackup", ({ backup }, userId) => importBackup(backup, userId));
 
 handle("metadata:load", async ({ chatId }, userId) => {
     return loadMetadata(chatId || await getActiveChatId(userId), userId);

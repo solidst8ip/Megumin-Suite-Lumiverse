@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { clone, mergeProfile } from "./defaults";
 import { REQUIRED_PLACEHOLDER_FEATURES, auditPresetPlaceholders, buildPromptMessages, estimateMeguminPayloadTokens, getLogic } from "./prompt-engine";
 import { extractNpcBlocks } from "./text";
@@ -572,8 +572,18 @@ describe("Megumin prompt assembly", () => {
     expect(at(4)).not.toContain("Omit deep lore");
   });
 
-  test("the shipped V9.1 preset resolves with no raw tokens left behind", () => {
-    const preset = JSON.parse(readFileSync(new URL("../Presets/Megumin Suite V9.1 Universal.json", import.meta.url), "utf8")) as {
+  test("the shipped Universal preset resolves with no raw tokens left behind", () => {
+    // The preset filename carries its version, so resolve the newest
+    // "Megumin Suite V<N> Universal.json" instead of hardcoding one — the last
+    // hardcode rotted when V10 shipped and the suite went red on a missing
+    // file rather than on a real regression.
+    const presetsDir = new URL("../Presets/", import.meta.url);
+    const universal = readdirSync(presetsDir)
+      .map((file) => ({ file, version: Number(/^Megumin Suite V(\d+) Universal\.json$/.exec(file)?.[1] || 0) }))
+      .filter((entry) => entry.version > 0)
+      .sort((a, b) => b.version - a.version)[0];
+    expect(universal).toBeDefined();
+    const preset = JSON.parse(readFileSync(new URL(universal.file, presetsDir), "utf8")) as {
       prompts: Array<{ content?: string }>;
     };
     const incoming: LlmMessage[] = (preset.prompts || [])
@@ -593,6 +603,50 @@ describe("Megumin prompt assembly", () => {
     expect(joined.match(/\[\[[^\]]{1,30}\]\]/g)).toBeNull();
     expect(joined).toContain("<config>");
     expect(joined).toContain("<Blocks>");
+  });
+
+  test("[[user]] resolves to the never-write rule except on co-writer engines", () => {
+    const build = (mode: string, customEngines: EngineMode[] = []) => {
+      const profile = mergeProfile({ mode });
+      const built = buildPromptMessages([{ role: "system", content: "a\n[[user]]\nb" }], [], profile, customEngines, context);
+      return built.messages.map((m) => (typeof m.content === "string" ? m.content : "")).join("\n");
+    };
+    // Standard engine: the rule lands inline.
+    const standard = build("v9-core");
+    expect(standard).toContain("4. NEVER write for or Control {{user}}");
+    expect(standard).not.toContain("[[user]]");
+    // Co-writer engine (id suffix -cw): blanked, and the empty line is cleaned.
+    const cw = build("v9-core-cw", [{ id: "v9-core-cw", label: "Co-writer" }]);
+    expect(cw).not.toContain("[[user]]");
+    expect(cw).not.toContain("NEVER write for");
+    expect(cw).toBe("a\nb");
+  });
+
+  test("[[dice]] fills [[dice_rolls]] with fresh numbers when the addon is on", () => {
+    const profile = mergeProfile({ addons: ["dice"] });
+    const built = buildPromptMessages([{ role: "system", content: "[[dice]]" }], [], profile, [], context);
+    const joined = built.messages.map((m) => (typeof m.content === "string" ? m.content : "")).join("\n");
+    expect(joined).toContain("<dice_rules>");
+    expect(joined).not.toContain("[[dice]]");
+    expect(joined).not.toContain("[[dice_rolls]]");
+    // Player-only variant hands over exactly three rolls, each 1-20.
+    const rolls = /this turn's rolls are ([^.]+)\./.exec(joined)?.[1] ?? "";
+    const numbers = rolls.split(",").map((s) => Number(s.trim()));
+    expect(numbers).toHaveLength(3);
+    for (const n of numbers) expect(n).toBeGreaterThanOrEqual(1), expect(n).toBeLessThanOrEqual(20);
+  });
+
+  test("[[html]] resolves when its addon is on and is stripped when it is off", () => {
+    const build = (addons: string[]) => {
+      const profile = mergeProfile({ addons });
+      const built = buildPromptMessages([{ role: "system", content: "x\n[[html]]\ny" }], [], profile, [], context);
+      return built.messages.map((m) => (typeof m.content === "string" ? m.content : "")).join("\n");
+    };
+    const on = build(["html"]);
+    expect(on).toContain("<render>");
+    expect(on).not.toContain("[[html]]");
+    // Off: the leak guard strips the tag and its line rather than leaking it.
+    expect(build([])).toBe("x\ny");
   });
 
   test("removes empty placeholder lines when a feature has no active payload", () => {
