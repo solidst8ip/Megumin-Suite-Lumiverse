@@ -57,6 +57,13 @@ export async function comfyFetch(url, options = {}) {
         const loras = url.match(/^(.*)\/object_info\/LoraLoader$/);
         if (loras) return respond(await call("comfy:loras", { url: loras[1] }));
 
+        // Generic node description, used when converting an imported
+        // editor-format workflow whose node type has no built-in widget table.
+        // Kept after the LoraLoader branch so that call site's raw shape is
+        // unchanged.
+        const objInfo = url.match(/^(.*)\/object_info\/([^/?]+)$/);
+        if (objInfo) return respond(await call("comfy:objectInfo", { url: objInfo[1], nodeType: decodeURIComponent(objInfo[2]) }));
+
         const prompt = url.match(/^(.*)\/prompt$/);
         if (prompt) {
             return respond(await call("comfy:queue", {

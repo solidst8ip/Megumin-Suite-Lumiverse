@@ -9,6 +9,7 @@
 // ────────────────────────────────────────────────────────────────────────────
 
 import { comfyFetch } from "./comfyFetch.js";
+import { bindWorkflow, formatImportedWorkflowText, widgetOrderFromObjectInfo } from "./workflowAuto.js";
 import { toastr, $, getContext, getRequestHeaders, generateQuietPrompt, saveChat, reloadCurrentChat, addOneMessage, appendMediaToMessage, updateMessageBlock, saveBase64AsFile, humanizedDateTime, Popup, POPUP_TYPE } from "../../host.js";
 import { extensionName } from "../../core/constants.js";
 import { localProfile } from "../../core/state.js";
@@ -537,6 +538,31 @@ export function toggleQuickGenButton() {
     }
 }
 
+// Describe an unknown ComfyUI node type for workflow conversion: ask the
+// configured instance for its input definition and derive the widget order.
+// Returns null when the server is unreachable or the type is unknown there.
+async function describeComfyNodeType(classType) {
+    const url = localProfile?.imageGen?.comfyUrl;
+    if (!url || !classType) return null;
+    try {
+        const res = await comfyFetch(`${url}/object_info/${encodeURIComponent(classType)}`, { method: 'GET', headers: getRequestHeaders() });
+        if (!res.ok) return null;
+        return widgetOrderFromObjectInfo(await res.json(), classType);
+    } catch (e) { return null; }
+}
+
+// Summarize an auto-format/auto-map report for the user: one toast, details in
+// the console.
+function reportWorkflowAutoFormat(result, action) {
+    const mapped = result.applied.length;
+    const label = result.format && result.format !== 'api' ? ` (${result.format} format converted)` : '';
+    toastr.success(`${action}${label} — ${mapped} input${mapped === 1 ? '' : 's'} auto-mapped.`);
+    if (result.warnings.length > 0) {
+        console.warn(`[Megumin Suite] workflow auto-format warnings:`, result.warnings);
+        toastr.warning(`${result.warnings.length} warning${result.warnings.length === 1 ? '' : 's'} — see console for details.`);
+    }
+}
+
 export async function igTestConnection() {
     try {
         const res = await comfyFetch('/api/sd/comfy/ping', { method: 'POST', headers: getRequestHeaders(), body: JSON.stringify({ url: localProfile.imageGen.comfyUrl }) });
@@ -601,6 +627,7 @@ export async function igOpenWorkflowEditorClick() {
                 <h3 style="margin:0; color: var(--gold);">${name}</h3>
                 <div style="display:flex; gap:8px;">
                     <button class="ps-modern-btn secondary wf-format" title="Beautify JSON"><i class="fa-solid fa-align-left"></i> Format</button>
+                    <button class="ps-modern-btn secondary wf-automap" title="Convert to API format if needed and auto-place the tab's %placeholder% tokens on the right nodes"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto-map</button>
                     <button class="ps-modern-btn secondary wf-import" title="Upload .json file"><i class="fa-solid fa-upload"></i> Import</button>
                     <button class="ps-modern-btn secondary wf-export" title="Download .json file"><i class="fa-solid fa-download"></i> Export</button>
                     <input type="file" class="wf-file-input" accept=".json" style="display:none;" />
@@ -636,8 +663,38 @@ export async function igOpenWorkflowEditorClick() {
     $textarea.on('input', updateState); setTimeout(updateState, 100);
 
     $container.find('.wf-format').on('click', () => { try { $textarea.val(JSON.stringify(JSON.parse($textarea.val()), null, 4)); updateState(); toastr.success("Formatted"); } catch (e) { toastr.warning("Invalid JSON"); } });
+    $container.find('.wf-automap').on('click', async () => {
+        try {
+            const result = await formatImportedWorkflowText($textarea.val(), { describeNodeType: describeComfyNodeType });
+            if (!result.ok) return toastr.warning(result.error);
+            $textarea.val(result.text);
+            updateState();
+            reportWorkflowAutoFormat(result, "Auto-mapped");
+        } catch (e) { toastr.error("Auto-map failed: " + e.message); }
+    });
     $container.find('.wf-import').on('click', () => $fileInput.click());
-    $fileInput.on('change', (e) => { if (!e.target.files[0]) return; const r = new FileReader(); r.onload = (ev) => { $textarea.val(ev.target.result); updateState(); toastr.success("Imported"); }; r.readAsText(e.target.files[0]); $fileInput.val(''); });
+    $fileInput.on('change', (e) => {
+        if (!e.target.files[0]) return;
+        const r = new FileReader();
+        r.onload = async (ev) => {
+            try {
+                // Imports are auto-formatted: converted to the API format when
+                // needed and tokenized for the tab, so they work immediately.
+                const result = await formatImportedWorkflowText(ev.target.result, { describeNodeType: describeComfyNodeType });
+                if (!result.ok) throw new Error(result.error);
+                $textarea.val(result.text);
+                updateState();
+                reportWorkflowAutoFormat(result, "Imported");
+            } catch (err) {
+                // Never lose the user's file: fall back to the raw import.
+                $textarea.val(ev.target.result);
+                updateState();
+                toastr.warning("Auto-format failed — loaded the raw file instead. " + err.message);
+            }
+        };
+        r.readAsText(e.target.files[0]);
+        $fileInput.val('');
+    });
     $container.find('.wf-export').on('click', () => { try { JSON.parse(currentJsonText); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([currentJsonText], { type: "application/json" })); a.download = name; a.click(); } catch (e) { toastr.warning("Invalid content"); } });
 
     const popup = new Popup($container, POPUP_TYPE.CONFIRM, '', { okButton: 'Save Changes', cancelButton: 'Cancel', wide: true, large: true, onClosing: () => { try { JSON.parse(currentJsonText); return true; } catch (e) { toastr.error("Invalid JSON."); return false; } } });
@@ -944,34 +1001,32 @@ export async function igGenerateWithComfy(positivePrompt, target = null) {
     let workflow = (typeof workflowRaw === 'string') ? JSON.parse(workflowRaw) : workflowRaw;
     let finalSeed = parseInt(s.customSeed); if (finalSeed === -1 || isNaN(finalSeed)) finalSeed = Math.floor(Math.random() * 1000000000);
 
-    let seedInjected = false;
-    for (const nodeId in workflow) {
-        const node = workflow[nodeId];
-        if (node.inputs) {
-            for (const key in node.inputs) {
-                const val = node.inputs[key];
-                if (val === "%prompt%") node.inputs[key] = finalPrompt;
-                if (val === "%negative_prompt%") node.inputs[key] = s.customNegative || "";
-                if (val === "%seed%") { node.inputs[key] = finalSeed; seedInjected = true; }
-                if (val === "%sampler%") node.inputs[key] = s.selectedSampler || "euler";
-                if (val === "%model%") node.inputs[key] = s.selectedModel || "v1-5-pruned.ckpt";
-                if (val === "%steps%") node.inputs[key] = parseInt(s.steps) || 20;
-                if (val === "%scale%") node.inputs[key] = parseFloat(s.cfg) || 7.0;
-                if (val === "%denoise%") node.inputs[key] = parseFloat(s.denoise) || 1.0;
-                if (val === "%clip_skip%") node.inputs[key] = -Math.abs(parseInt(s.clipSkip)) || -1;
-                if (val === "%lora1%") node.inputs[key] = s.selectedLora || "None";
-                if (val === "%lora2%") node.inputs[key] = s.selectedLora2 || "None";
-                if (val === "%lora3%") node.inputs[key] = s.selectedLora3 || "None";
-                if (val === "%lora4%") node.inputs[key] = s.selectedLora4 || "None";
-                if (val === "%lorawt1%") node.inputs[key] = parseFloat(s.selectedLoraWt) || 1.0;
-                if (val === "%lorawt2%") node.inputs[key] = parseFloat(s.selectedLoraWt2) || 1.0;
-                if (val === "%lorawt3%") node.inputs[key] = parseFloat(s.selectedLoraWt3) || 1.0;
-                if (val === "%lorawt4%") node.inputs[key] = parseFloat(s.selectedLoraWt4) || 1.0;
-                if (val === "%width%") node.inputs[key] = parseInt(s.imgWidth) || 512;
-                if (val === "%height%") node.inputs[key] = parseInt(s.imgHeight) || 512;
-            }
-            if (!seedInjected && node.class_type === "KSampler" && 'seed' in node.inputs && typeof node.inputs['seed'] === 'number') { node.inputs.seed = finalSeed; }
-        }
+    // Bind the tab's settings into the workflow. Explicit %placeholder% tokens
+    // keep working exactly as before; anything they don't cover is bound by
+    // node type and link tracing, so imported workflows need no hand-editing.
+    const bound = bindWorkflow(workflow, {
+        prompt: finalPrompt,
+        negativePrompt: s.customNegative || "",
+        seed: finalSeed,
+        steps: s.steps,
+        cfg: s.cfg,
+        denoise: s.denoise,
+        clipSkip: s.clipSkip,
+        sampler: s.selectedSampler || "",
+        scheduler: s.scheduler || "",
+        model: s.selectedModel || "",
+        width: s.imgWidth,
+        height: s.imgHeight,
+        loras: [
+            { name: s.selectedLora, weight: s.selectedLoraWt },
+            { name: s.selectedLora2, weight: s.selectedLoraWt2 },
+            { name: s.selectedLora3, weight: s.selectedLoraWt3 },
+            { name: s.selectedLora4, weight: s.selectedLoraWt4 },
+        ],
+    });
+    workflow = bound.workflow;
+    if (bound.warnings.length > 0) {
+        console.warn(`[Megumin Suite] workflow binding warnings for ${s.currentWorkflowName}:`, bound.warnings);
     }
 
     // ComfyUI reports real step progress, but only to the client id that queued

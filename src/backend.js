@@ -23,7 +23,7 @@ import { handle, push, installRouter } from "./backend/rpc.js";
 import { enterEngine, resolvePersonaName, toEngineMessages } from "./backend/engine/context.js";
 import { runTask } from "./backend/tasks.js";
 import {
-    comfyPing, comfyModels, comfySamplers, comfyLoras,
+    comfyPing, comfyModels, comfySamplers, comfyLoras, comfyObjectInfo,
     listWorkflows, readWorkflow, saveWorkflow, deleteWorkflow,
     queuePrompt, promptHistory, fetchImage,
 } from "./backend/comfy.js";
@@ -299,6 +299,7 @@ handle("comfy:ping",       ({ url }) => comfyPing(url));
 handle("comfy:models",     ({ url }) => comfyModels(url));
 handle("comfy:samplers",   ({ url }) => comfySamplers(url));
 handle("comfy:loras",      ({ url }) => comfyLoras(url));
+handle("comfy:objectInfo", ({ url, nodeType }) => comfyObjectInfo(url, nodeType));
 
 handle("comfy:workflows",      () => listWorkflows());
 handle("comfy:readWorkflow",   ({ name }) => readWorkflow(name));

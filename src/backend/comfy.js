@@ -83,6 +83,13 @@ export function comfyLoras(url) {
     return comfyGet(url, "/object_info/LoraLoader");
 }
 
+// Raw /object_info for any node type. Used when converting an imported
+// editor-format workflow whose node type has no built-in widget table: the
+// input definition order tells us how to map its positional widgets_values.
+export function comfyObjectInfo(url, nodeType) {
+    return comfyGet(url, `/object_info/${encodeURIComponent(nodeType)}`);
+}
+
 // ── Saved workflows ──────────────────────────────────────────────────────────
 
 export async function listWorkflows() {
