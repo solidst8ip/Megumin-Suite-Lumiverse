@@ -14,27 +14,36 @@ import { DEFAULT_PROMPTS } from "./default-prompts";
 export const DIRECT_LANGUAGE_BLOCK = "**DIRECT LANGUAGE:** Use exact Booru tags only. \"naked\" not \"wearing nothing.\" \"erection\" not \"visible arousal.\"\n\n**NSFW TAG REFERENCE (use when scene is explicit):**\nBody: naked, nude, topless, exposed nipples, small breasts, medium breasts, large breasts, spread legs, ass, erection, veins, veiny penis\nActions: hetero, sex, vaginal, anal, oral, fellatio, after fellatio, paizuri, straddling, riding, missionary, doggystyle, cowgirl position, moaning, open mouth, tongue out, ahegao, clenching teeth\nFluids: cum, cum on body, cum on breasts, cum on face, cum on hair, cum on tongue, cum in mouth, cum inside, ejaculation, facial, saliva, sweat\nState: flushed face, heavy breathing, trembling, crying with eyes open, half-closed eyes, solo focus";
 
 type TemplateKey =
-  | "illus_pov" | "sdxl_pov"
-  | "illus_cinematic" | "sdxl_cinematic"
-  | "illus_portrait" | "sdxl_portrait";
+  | "illus_pov" | "sdxl_pov" | "sd_pov"
+  | "illus_cinematic" | "sdxl_cinematic" | "sd_cinematic"
+  | "illus_portrait" | "sdxl_portrait" | "sd_portrait";
 
 const TEMPLATE_FIELDS: Record<TemplateKey, [rules: string, examples: string]> = {
   illus_pov: ["rulesIllusPov", "examplesIllusPov"],
   sdxl_pov: ["rulesSdxlPov", "examplesSdxlPov"],
+  sd_pov: ["rulesSdPov", "examplesSdPov"],
   illus_cinematic: ["rulesIllusCinematic", "examplesIllusCinematic"],
   sdxl_cinematic: ["rulesSdxlCinematic", "examplesSdxlCinematic"],
+  sd_cinematic: ["rulesSdCinematic", "examplesSdCinematic"],
   illus_portrait: ["rulesIllusPortrait", "examplesIllusPortrait"],
-  sdxl_portrait: ["rulesSdxlPortrait", "examplesSdxlPortrait"]
+  sdxl_portrait: ["rulesSdxlPortrait", "examplesSdxlPortrait"],
+  sd_portrait: ["rulesSdPortrait", "examplesSdPortrait"]
 };
 
 /**
- * The beta stored one `promptTemplate` key; this port stores style and
- * perspective separately and already has UI for both. Crossing them here keeps
- * existing settings working while reaching the beta's template set. The
- * "standard" style has no templates of its own, so it borrows the Illustrious
- * rules, which is what the beta's default did.
+ * The UI stores a single `promptTemplate` key (e.g. "sdxl_cinematic"); honor it
+ * directly so the dropdown selection actually drives prompt generation. Older
+ * profiles that still carry the separate `promptStyle` / `promptPerspective`
+ * keys fall back to the legacy style x perspective mapping. The "standard"
+ * style has no templates of its own, so it borrows the Illustrious rules,
+ * which is what the beta's default did.
  */
+const KNOWN_TEMPLATES = new Set(Object.keys(TEMPLATE_FIELDS));
 export function templateKey(settings: ImageGenSettings): TemplateKey {
+  const direct = (settings as { promptTemplate?: unknown }).promptTemplate;
+  if (typeof direct === "string" && KNOWN_TEMPLATES.has(direct)) {
+    return direct as TemplateKey;
+  }
   const style = settings.promptStyle === "sdxl" ? "sdxl" : "illus";
   const shape =
     settings.promptPerspective === "pov" ? "pov"

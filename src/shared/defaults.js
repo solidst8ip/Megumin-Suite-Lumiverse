@@ -149,6 +149,7 @@ export const DEFAULT_PROFILE = {
         autoGenFreq: 1,
         previewPrompt: false,
         saveToCharacterId: "",
+        connectionId: "",
         savedWorkflowStates: {},
         customPrompts: null,
         customPromptsEnabled: false

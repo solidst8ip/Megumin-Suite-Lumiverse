@@ -28,7 +28,7 @@ import { useMeguminEngine } from "../engine/tasks.js";
 import { generateStoryPlanLogic } from "./storyplan/ui.js";
 import { npcParseBlock, npcCreateRecord, meguminFindNpcDossiers } from "../../shared/npc/data.js";
 import { npcParseUpdateBlocks, npcApplyUpdates } from "../../shared/npc/updates.js";
-import { igGenerateWithComfy } from "./imagegen/index.js";
+import { igGenerateImage } from "./imagegen/index.js";
 import { meguminScheduleBlocksRefresh } from "../blocks/chat.js";
 
 // `renderNpcList` is reached through the refresh hook rather than imported: the
@@ -262,21 +262,21 @@ export async function onMessageReceived() {
             meguminScheduleBlocksRefresh();
         }, 100);
 
-        // 2. Send the extracted prompts to ComfyUI!
+        // 2. Send the extracted prompts to the active image provider!
         matches.forEach((match, idx) => {
             const extractedPrompt = match[2];
             const uniquePlaceholderId = `kazuma-img-${batchId}-${idx}`;
         
             setTimeout(() => {
-                toastr.info(`Image tag ${idx + 1} detected. Sending to ComfyUI...`);
-                igGenerateWithComfy(extractedPrompt, { 
+                toastr.info(`Image tag ${idx + 1} detected. Sending for generation...`);
+                igGenerateImage(extractedPrompt, { 
                     message: lastMsg, 
                     index: msgIndex, 
                     mode: injectMode, 
                     isInlineAuto: true,
                     placeholderId: uniquePlaceholderId 
                 });
-            }, 500 + (idx * 1500)); // Stagger calls slightly to prevent overloading ComfyUI
+            }, 500 + (idx * 1500)); // Stagger calls slightly to prevent overloading the backend
         });
     }
 }

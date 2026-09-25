@@ -32,6 +32,86 @@ function installRouter() {
   });
 }
 
+// src/engine/defaults.ts
+function defaultProfile() {
+  return {
+    mode: "v9-core",
+    personality: "engine",
+    aiRule: "",
+    model: "cot-v9-english",
+    cotEnabled: true,
+    thinkingV2: false,
+    thinkEffort: "unspecified",
+    customThinkEffort: "100",
+    userLanguage: "",
+    userPronouns: "",
+    toggles: { ooc: false, control: false },
+    addons: [],
+    blocks: [],
+    blockStack: { order: [], custom: [], overrides: {} },
+    statBlocks: {
+      bonds: {
+        fields: [
+          { id: "mood", label: "Mood", type: "text", hint: "emotional surface" },
+          { id: "affection", label: "Affection", type: "meter", max: 100, start: 20 },
+          { id: "trust", label: "Trust", type: "meter", max: 100, start: 30 },
+          { id: "desire", label: "Desire", type: "meter", max: 100, start: 0 }
+        ]
+      },
+      sheet: { fields: [] }
+    },
+    v9Limits: { leanMin: 300, leanMax: 400, fullMin: 700, fullMax: 1200 },
+    storyConfig: {
+      enabled: false,
+      genre: "",
+      culture: "",
+      era: "",
+      pov: "",
+      focus: "",
+      tone: "",
+      narratorPresence: "",
+      npcSpeechStyle: "",
+      npcDisposition: "",
+      pace: "",
+      length: "",
+      difficulty: "",
+      friction: "",
+      explicitness: "",
+      notes: ""
+    },
+    dnRatio: { enabled: false, dialogue: 50 },
+    onomatopoeia: { enabled: false, useStyling: false },
+    devOverrides: {}
+  };
+}
+function withDefaults(stored) {
+  const base = defaultProfile();
+  if (!stored || typeof stored !== "object")
+    return base;
+  const p = stored;
+  return {
+    ...base,
+    ...p,
+    toggles: { ...base.toggles, ...p.toggles ?? {} },
+    blockStack: { ...base.blockStack, ...p.blockStack ?? {} },
+    statBlocks: { ...base.statBlocks, ...p.statBlocks ?? {} },
+    v9Limits: { ...base.v9Limits, ...p.v9Limits ?? {} },
+    storyConfig: { ...base.storyConfig, ...p.storyConfig ?? {} },
+    dnRatio: { ...base.dnRatio, ...p.dnRatio ?? {} },
+    onomatopoeia: { ...base.onomatopoeia, ...p.onomatopoeia ?? {} },
+    devOverrides: { ...base.devOverrides, ...p.devOverrides ?? {} },
+    addons: Array.isArray(p.addons) ? p.addons : base.addons,
+    blocks: Array.isArray(p.blocks) ? p.blocks : base.blocks
+  };
+}
+
+// src/backend/profile-store.ts
+var GLOBAL_PATH = "profile.json";
+async function readGlobal() {
+  const raw = await spindle.storage.getJson(GLOBAL_PATH, { fallback: null });
+  return withDefaults(raw);
+}
+
 // src/backend/store.js
 var SETTINGS_FILE = "settings.json";
 var EMPTY_SETTINGS = {
@@ -543,7 +623,93 @@ Then lighting: soft lighting, studio lighting, natural lighting, side lighting,
    - Any held items near the face or upper body
 4. **Background & Lighting:** Use a simple, non-distracting background. Describe studio-style or natural portrait lighting in the final sentence.`,
   examplesSdxlPortrait: `EXAMPLE \u2014 Character Portrait:
-<img prompt="A masterpiece portrait. An upper-body shot of a young elf woman with pale skin and a light dusting of freckles across her nose. She has bright green eyes and long auburn hair pulled into a loose side braid draped over her left shoulder. Small silver leaf-shaped earrings catch the light. She wears a dark green wool tunic under a fitted brown leather vest with a high collar. She holds a small glowing blue flower near her chin and smiles gently, her head tilted slightly to the right, looking directly at the viewer. The background is a soft blur of green forest. Dappled natural light filters through unseen canopy above, creating warm highlights on her hair and soft shadows under her jaw.">`
+<img prompt="A masterpiece portrait. An upper-body shot of a young elf woman with pale skin and a light dusting of freckles across her nose. She has bright green eyes and long auburn hair pulled into a loose side braid draped over her left shoulder. Small silver leaf-shaped earrings catch the light. She wears a dark green wool tunic under a fitted brown leather vest with a high collar. She holds a small glowing blue flower near her chin and smiles gently, her head tilted slightly to the right, looking directly at the viewer. The background is a soft blur of green forest. Dappled natural light filters through unseen canopy above, creating warm highlights on her hair and soft shadows under her jaw.">`,
+  rulesSdPov: `Build the prompt as classic Stable Diffusion tag soup: flat comma-separated tags, NO full sentences. Do NOT rearrange sections.
+
+**SECTION 1 \u2014 Quality + POV:**
+Start: masterpiece, best quality, amazing quality, very aesthetic,
+Then POV tags:
+- Observing: pov, first person, looking at viewer, + foreground anchor tag (e.g., foreground, desk edge visible,)
+- Interacting: pov, first person, pov hands, + hand action tags (e.g., male hands, holding silver tray,)
+- NEVER describe the user's face.
+
+**SECTION 2 \u2014 Character Count:**
+Booru count tags: 1girl,, 3girls,, 1boy 1girl,,
+
+**SECTION 3 \u2014 Character Tags:**
+Flat comma-separated Booru tags for appearance, clothing, expression, pose. Use (emphasis:1.2) on the 2-3 most important traits, e.g., (tear-streaked face:1.2). Keep each tag short.
+
+FOR MULTIPLE CHARACTERS (2+ in frame): group each character's tags together and separate the groups with BREAK, e.g.,
+1girl mature female, pale skin, dark eyes, long black hair, BREAK 1girl rabbit girl, blonde hair, blue eyes,
+so features do not bleed between characters. Add spatial tags inside each group (on the left,, in the center,).
+
+**SECTION 4 \u2014 Scene + Lighting (always last):**
+Background and lighting tags: interior background,, night,, volumetric lighting,, depth of field,
+
+**BANS:** No full sentences. No describing the user's face/body.`,
+  examplesSdPov: `EXAMPLE \u2014 Single Character:
+<img prompt=\\"masterpiece, best quality, amazing quality, very aesthetic, pov, first person, looking at viewer, foreground, black leather car seat edge visible, 1girl, mature female, pale skin, dark eyes, long black hair, messy high ponytail, dark wool coat, white silk blouse, (tear-streaked face:1.2), anxious expression, sitting sideways, holding blanket, reaching toward viewer, car interior, tinted windows, night, blurred city lights, soft amber lighting, depth of field\\">
+
+EXAMPLE \u2014 Multiple Characters:
+<img prompt=\\"masterpiece, best quality, amazing quality, very aesthetic, pov, first person, looking at viewer, foreground, messy white bedsheets visible, 3girls, BREAK, 1girl mature female, pale skin, dark eyes, long black hair, messy high ponytail, dark wool coat, white silk blouse, tear-streaked face, anxious expression, sitting sideways, holding blanket, reaching toward viewer, on the left, BREAK, 1girl rabbit girl, kemonomimi, long blonde hair, white rabbit ears, pale skin, blue eyes, black white french maid outfit, maid headdress, nervous expression, hands clasped near mouth, in the center, BREAK, 1girl demon girl, pale skin, short black hair, red eyes, red oni horns, dark blue maid dress, white apron, stoic expression, holding red velvet slippers, on the right, lavish bedroom, ornate furniture, chandelier, warm golden lighting, depth of field\\">`,
+  rulesSdCinematic: `Build the prompt as classic Stable Diffusion tag soup: flat comma-separated tags, NO full sentences. Do NOT rearrange sections.
+
+**SECTION 1 \u2014 Quality + Camera:**
+Start: masterpiece, best quality, amazing quality, very aesthetic, cinematic,
+Then camera/framing tags (pick to fit the scene):
+- Wide: wide shot, full body,
+- Medium: medium shot, upper body,
+- Close: close-up, face focus,
+- Dramatic: dutch angle, low angle, high angle,
+
+**SECTION 2 \u2014 Character Count:**
+Booru count tags: 1girl,, 2boys,, 1boy 1girl,,
+
+**SECTION 3 \u2014 Character Tags (anti-bleed rules):**
+
+FOR SINGLE CHARACTER (1 in frame): flat comma-separated Booru tags for appearance, clothing, expression, pose. Use (emphasis:1.2) on the 2-3 most important traits.
+
+FOR MULTIPLE CHARACTERS (2+ in frame): group each character's tags together and separate the groups with BREAK, e.g.,
+1girl elf, long silver hair, pointed ears, BREAK 1girl dwarf, red braided hair,
+so features do not bleed between characters. Add spatial tags inside each group (on the left,, in the center,, behind her,).
+
+**SECTION 4 \u2014 Scene + Lighting (always last):**
+Background, lighting, atmosphere tags: cinematic lighting, volumetric lighting, rim lighting, god rays, lens flare, dramatic shadows, backlighting,
+
+**BANS:** No full sentences. No first-person POV tags in this template.`,
+  examplesSdCinematic: `EXAMPLE \u2014 Single Character Cinematic:
+<img prompt=\\"masterpiece, best quality, amazing quality, very aesthetic, cinematic, low angle, full body, 1girl, young woman, dark skin, amber eyes, long white hair, loose waves, gold circlet, white draped toga, gold belt, bare feet, (determined expression:1.2), standing on cliff edge, arms at sides, fists clenched, wind, flowing hair, mountainous desert, ancient ruins, golden hour, volumetric lighting, rim lighting, dramatic shadows, dust particles\\">
+
+EXAMPLE \u2014 Multiple Characters Cinematic:
+<img prompt=\\"masterpiece, best quality, amazing quality, very aesthetic, cinematic, wide shot, 2girls, BREAK, 1girl tall elf, long silver hair, pointed ears, pale skin, green eyes, dark leather armor, hooded cloak, cautious expression, holding bow, on the left, BREAK, 1girl short dwarf woman, tan skin, brown eyes, thick red braided hair, dented iron plate armor, fur pauldrons, grinning, resting warhammer on shoulder, on the right, rain-soaked cobblestone street, medieval town, night, tavern windows, volumetric fog, rim lighting, puddle reflections, dramatic shadows\\">`,
+  rulesSdPortrait: `Build the prompt as classic Stable Diffusion tag soup: flat comma-separated tags, NO full sentences. Do NOT rearrange sections.
+
+**SECTION 1 \u2014 Quality + Framing:**
+Start: masterpiece, best quality, amazing quality, very aesthetic, portrait,
+Then framing (pick one):
+- upper body, (chest and up)
+- head and shoulders, (shoulders and up)
+- close-up, face only, (face only)
+
+**SECTION 2 \u2014 Character Count:**
+Always 1girl, or 1boy, or 1other,.
+
+**SECTION 3 \u2014 Character Tags:**
+Flat comma-separated Booru tags covering ALL of:
+- Species/race, age bracket, body type
+- Skin tone, eye color and shape, hair color/length/style
+- Clothing and accessories visible in frame
+- Facial expression, head tilt, gaze direction
+- Any held items visible in frame
+Use (emphasis:1.2) on the 2-3 most defining traits.
+
+**SECTION 4 \u2014 Background + Lighting (always last):**
+Simple backgrounds: simple background, gradient background, dark background, blurred background,
+Then lighting: soft lighting, studio lighting, natural lighting, side lighting,
+
+**BANS:** No full sentences. No full-body shots. No complex scenes. One character only.`,
+  examplesSdPortrait: `EXAMPLE \u2014 Character Portrait:
+<img prompt=\\"masterpiece, best quality, amazing quality, very aesthetic, portrait, upper body, 1girl, young woman, elf, pointed ears, pale skin, freckles, bright green eyes, long auburn hair, loose side braid, silver leaf earrings, dark green wool tunic, brown leather vest, high collar, (gentle smile:1.2), head tilt, looking at viewer, holding glowing blue flower, blurred forest background, dappled natural lighting, soft focus\\">`
 };
 
 // src/shared/prompts/npcBank.js
@@ -1141,6 +1307,7 @@ var DEFAULT_PROFILE = {
     autoGenFreq: 1,
     previewPrompt: false,
     saveToCharacterId: "",
+    connectionId: "",
     savedWorkflowStates: {},
     customPrompts: null,
     customPromptsEnabled: false
@@ -7409,10 +7576,13 @@ ${ct.content}`;
       const map = {
         illus_pov: ["rulesIllusPov", "examplesIllusPov"],
         sdxl_pov: ["rulesSdxlPov", "examplesSdxlPov"],
+        sd_pov: ["rulesSdPov", "examplesSdPov"],
         illus_cinematic: ["rulesIllusCinematic", "examplesIllusCinematic"],
         sdxl_cinematic: ["rulesSdxlCinematic", "examplesSdxlCinematic"],
+        sd_cinematic: ["rulesSdCinematic", "examplesSdCinematic"],
         illus_portrait: ["rulesIllusPortrait", "examplesIllusPortrait"],
-        sdxl_portrait: ["rulesSdxlPortrait", "examplesSdxlPortrait"]
+        sdxl_portrait: ["rulesSdxlPortrait", "examplesSdxlPortrait"],
+        sd_portrait: ["rulesSdPortrait", "examplesSdPortrait"]
       };
       let rules = "", examples = "";
       const keys = map[tmpl];
@@ -8241,6 +8411,67 @@ handle("comfy:image", async ({ url, filename, subfolder, type }, userId) => {
     characterId: chat && chat.character_id || null,
     userId
   });
+});
+async function igResolveConnection(connectionId, userId) {
+  const wanted = (connectionId || "").trim();
+  if (wanted) {
+    try {
+      const c = await spindle.imageGen.getConnection(wanted, userId);
+      if (c && c.id)
+        return c;
+    } catch (e) {
+      console.warn("[Megumin-Suite] image connection lookup failed", e);
+    }
+  }
+  try {
+    const profile = await readGlobal();
+    const saved = (profile?.imageGen?.connectionId || "").trim();
+    if (saved && saved !== wanted) {
+      const c = await spindle.imageGen.getConnection(saved, userId).catch(() => null);
+      if (c && c.id)
+        return c;
+    }
+  } catch (e) {
+    console.warn("[Megumin-Suite] image connection profile fallback failed", e);
+  }
+  try {
+    const connections = await spindle.imageGen.listConnections(userId) || [];
+    return connections.find((c) => c && c.is_default) || connections[0] || null;
+  } catch (e) {
+    console.warn("[Megumin-Suite] image:connections fallback failed", e);
+    return null;
+  }
+}
+handle("image:connections", async (_data, userId) => {
+  try {
+    return await spindle.imageGen.listConnections(userId) || [];
+  } catch (e) {
+    console.warn("[Megumin-Suite] image:connections failed", e);
+    return [];
+  }
+});
+handle("image:generate", async ({ prompt, negativePrompt, connectionId, parameters, ownerCharacterId, ownerChatId }, userId) => {
+  const connection = await igResolveConnection(connectionId, userId);
+  if (!connection)
+    throw new Error("No image connection available.");
+  const result = await spindle.imageGen.generate({
+    prompt,
+    connection_id: connection.id,
+    model: parameters?.model || undefined,
+    negativePrompt: negativePrompt || undefined,
+    parameters: parameters || {},
+    owner_character_id: ownerCharacterId || undefined,
+    owner_chat_id: ownerChatId || await getActiveChatId(userId) || undefined,
+    userId
+  });
+  return {
+    imageDataUrl: result?.imageDataUrl || null,
+    imageId: result?.imageId || null,
+    imageUrl: result?.imageUrl || null,
+    provider: result?.provider || connection.provider || null,
+    model: result?.model || parameters?.model || null,
+    connectionId: connection.id
+  };
 });
 spindle.registerInterceptor(async (messages, generationContext) => {
   try {

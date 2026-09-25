@@ -978,6 +978,7 @@ describe("Megumin subsystem prompts", () => {
   test("image prompts use the template the style and perspective select", () => {
     const profile = clone(DEFAULT_PROFILE);
     profile.imageGen.enabled = true;
+    profile.imageGen.promptTemplate = "";
     profile.imageGen.promptStyle = "sdxl";
     profile.imageGen.promptPerspective = "pov";
     expect(templateKey(profile.imageGen)).toBe("sdxl_pov");
@@ -993,6 +994,61 @@ describe("Megumin subsystem prompts", () => {
         expect(templateParts(profile).rules.length).toBeGreaterThan(50);
       }
     }
+  });
+
+  test("the prompt template dropdown is honored for all nine templates", () => {
+    const profile = clone(DEFAULT_PROFILE);
+    profile.imageGen.enabled = true;
+    const allTemplates = [
+      "illus_cinematic", "illus_pov", "illus_portrait",
+      "sdxl_cinematic", "sdxl_pov", "sdxl_portrait",
+      "sd_cinematic", "sd_pov", "sd_portrait",
+    ] as const;
+    for (const dropdown of allTemplates) {
+      profile.imageGen.promptTemplate = dropdown;
+      expect(templateKey(profile.imageGen)).toBe(dropdown);
+    }
+  });
+
+  test("plain SD templates carry tag-soup guidance with BREAK anti-bleed rules", () => {
+    const profile = clone(DEFAULT_PROFILE);
+    profile.imageGen.enabled = true;
+    for (const tmpl of ["sd_pov", "sd_cinematic", "sd_portrait"] as const) {
+      profile.imageGen.promptTemplate = tmpl;
+      const parts = templateParts(profile);
+      expect(parts.rules.length).toBeGreaterThan(200);
+      expect(parts.rules).toContain("tag soup");
+      expect(parts.examples.length).toBeGreaterThan(200);
+      expect(parts.examples).toContain("<img prompt=");
+    }
+    // Multi-character anti-bleed guidance lives in the POV and cinematic
+    // templates; portraits are single-character by design.
+    for (const tmpl of ["sd_pov", "sd_cinematic"] as const) {
+      profile.imageGen.promptTemplate = tmpl;
+      expect(templateParts(profile).rules).toContain("BREAK");
+    }
+    profile.imageGen.promptTemplate = "sd_cinematic";
+    expect(templateParts(profile).rules).toContain("cinematic");
+  });
+
+  test("legacy style/perspective fields still map to a template", () => {
+    const profile = clone(DEFAULT_PROFILE);
+    profile.imageGen.enabled = true;
+    profile.imageGen.promptTemplate = "";
+    profile.imageGen.promptStyle = "standard";
+    profile.imageGen.promptPerspective = "scene";
+    // "standard" has no templates of its own; it borrows the Illustrious rules.
+    expect(templateKey(profile.imageGen)).toBe("illus_cinematic");
+    profile.imageGen.promptStyle = "illustrious";
+    profile.imageGen.promptPerspective = "pov";
+    expect(templateKey(profile.imageGen)).toBe("illus_pov");
+  });
+
+  test("an unknown template falls back to the default cinematic look", () => {
+    const profile = clone(DEFAULT_PROFILE);
+    profile.imageGen.enabled = true;
+    profile.imageGen.promptTemplate = "not_a_template";
+    expect(templateKey(profile.imageGen)).toBe("illus_cinematic");
   });
 
   test("direct language and examples are opt-in", () => {
@@ -1254,5 +1310,80 @@ describe("Megumin stylesheet isolation", () => {
   test("the global animation reset and :root variables are scoped", () => {
     expect(sheet).not.toMatch(/^\s*\*[,\s]/m);
     expect(sheet).not.toMatch(/^\s*:root\s*\{/m);
+  });
+});
+
+describe("Megumin image provider audit", () => {
+  // The production backend is dist/backend.js, built from src/backend.js —
+  // NOT src/backend.ts, which is old dead code. This audit pins the live
+  // surface so a future change cannot silently re-target the dead file.
+  const liveBackend = readFileSync(new URL("./backend.js", import.meta.url), "utf8");
+  const liveImagegen = readFileSync(new URL("./frontend/features/imagegen/index.js", import.meta.url), "utf8");
+  const liveAfterReply = readFileSync(new URL("./frontend/features/afterReply.js", import.meta.url), "utf8");
+  const liveDebug = readFileSync(new URL("./frontend/debug.js", import.meta.url), "utf8");
+  const manifest = JSON.parse(readFileSync(new URL("../spindle.json", import.meta.url), "utf8")) as { entry_backend?: string; permissions?: string[] };
+
+  test("spindle.json loads the built live backend", () => {
+    expect(manifest.entry_backend).toBe("dist/backend.js");
+  });
+
+  test("the manifest grants the image_gen permission the provider path needs", () => {
+    expect(manifest.permissions).toContain("image_gen");
+  });
+
+  test("the live backend exposes provider connection listing and generation", () => {
+    expect(liveBackend).toContain('handle("image:connections"');
+    expect(liveBackend).toContain('handle("image:generate"');
+    // Both route through the host's imageGen API, never a raw fetch.
+    expect(liveBackend).toContain("spindle.imageGen.listConnections");
+    expect(liveBackend).toContain("spindle.imageGen.generate");
+  });
+
+  test("the live backend resolves the connection explicit id, saved id, then host default", () => {
+    expect(liveBackend).toContain("spindle.imageGen.getConnection");
+    expect(liveBackend).toContain("is_default");
+    expect(liveBackend).toContain("connection_id: connection.id");
+  });
+
+  test("the provider path binds the workflow on the frontend and ships it to the backend", () => {
+    // SwarmUI executes parameters.workflow through /ComfyBackendDirect, so the
+    // bound workflow — not just the prompt text — must ride along.
+    expect(liveImagegen).toContain("export async function igGenerateViaProvider");
+    expect(liveImagegen).toContain("parameters: {");
+    expect(liveImagegen).toMatch(/parameters:\s*\{[^}]*workflow/s);
+    expect(liveImagegen).toContain('call("image:generate"');
+  });
+
+  test("direct ComfyUI and provider paths share one prompt/workflow/insert pipeline", () => {
+    for (const helper of [
+      "function igPreparePrompt",
+      "function igPreviewPromptText",
+      "function igLoadAndBindWorkflow",
+      "function igInsertGeneratedImage",
+      "function igWriteInlineFailure",
+    ]) {
+      expect(liveImagegen).toContain(helper);
+    }
+    // Both paths call the shared helpers — the direct path was refactored onto
+    // them, so each helper name appears at least twice (definition + use).
+    for (const name of ["igPreparePrompt(", "igLoadAndBindWorkflow(", "igInsertGeneratedImage(", "igWriteInlineFailure("]) {
+      const uses = liveImagegen.split(name).length - 1;
+      expect(uses).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  test("every generation entry point routes through the provider dispatcher", () => {
+    expect(liveImagegen).toContain("export async function igGenerateImage");
+    expect(liveImagegen).toMatch(/igGenerateImage[\s\S]*?igGenerateViaProvider/);
+    expect(liveImagegen).toMatch(/conn\.provider[\s\S]*?comfyui/i);
+    // Only the dispatcher may call the direct path: definition + dispatcher.
+    const directCalls = liveImagegen.split("igGenerateWithComfy(").length - 1;
+    expect(directCalls).toBe(2);
+    // Manual button, inline retry, auto-inject, and the debug helper all go
+    // through the dispatcher — none reaches past it to the direct path.
+    expect(liveAfterReply).toContain("igGenerateImage(");
+    expect(liveAfterReply).not.toContain("igGenerateWithComfy(");
+    expect(liveDebug).toContain("igGenerateImage(");
+    expect(liveDebug).not.toContain("igGenerateWithComfy(");
   });
 });

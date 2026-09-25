@@ -1,5 +1,5 @@
 // ────────────────────────────────────────────────────────────────────────────
-// Image generation — ComfyUI wiring, the tab, and the in-chat image handling.
+// Image generation — ComfyUI/SwarmUI wiring, the tab, and the in-chat image handling.
 //
 // Filed as one unit for the same reason as the Memory Core: the tab, the
 // generator and the retry buttons call each other in both directions (the tab
@@ -41,7 +41,7 @@ export function renderImageGen(c) {
                 </div>
                 <div>
                     <h2>Image Generation</h2>
-                    <p>ComfyUI integration for automatic scene rendering.</p>
+                    <p>Automatic scene rendering via your image server (ComfyUI or SwarmUI).</p>
                 </div>
             </div>
             <div id="ig_header_badge" class="mtab-header-badge" style="background: ${s.enabled ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.06)'}; color: ${s.enabled ? '#10b981' : 'var(--text-muted)'}; border: 1px solid ${s.enabled ? 'rgba(16,185,129,0.25)' : 'var(--border-color)'};">
@@ -51,7 +51,7 @@ export function renderImageGen(c) {
 
         <div class="mtab-callout blue" style="margin-bottom: 16px;">
             <i class="fa-solid fa-book-open"></i>
-            <span><strong>New to this? There's a setup guide.</strong> Getting ComfyUI talking to
+            <span><strong>New to this? There's a setup guide.</strong> Getting ComfyUI (or SwarmUI) talking to
             SillyTavern is the hard part, and none of the settings below matter until it is.
             <a href="https://www.reddit.com/r/SillyTavernAI/comments/1u87agq/tutorial_how_to_setup_inline_image_generation_in/"
                target="_blank" rel="noopener noreferrer"
@@ -63,7 +63,7 @@ export function renderImageGen(c) {
         <div class="mtab-toggle-row ${s.enabled ? 'active' : ''}" id="ig_enable_card" style="margin-bottom: 20px;">
             <div class="toggle-info">
                 <div class="toggle-label"><i class="fa-solid fa-image" style="color:#06b6d4;"></i> Enable Image Generation</div>
-                <div class="toggle-desc">Activate ComfyUI integration for this specific character/group.</div>
+                <div class="toggle-desc">Activate image generation for this specific character/group.</div>
             </div>
             <div class="ps-switch"></div>
         </div>
@@ -87,7 +87,14 @@ export function renderImageGen(c) {
             
             <!-- Connection & Workflow -->
             <div class="mtab-panel" style="margin-bottom:16px;">
-                <div class="mtab-panel-title blue"><i class="fa-solid fa-link"></i> ComfyUI Server & Workflow</div>
+                <div class="mtab-panel-title blue"><i class="fa-solid fa-link"></i> Image Server & Workflow <span id="ig_provider_badge" class="mtab-header-badge" style="margin-left: 8px; font-size: 0.65rem; background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid var(--border-color);">…</span></div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px;">Generation runs through your Lumiverse image connection (ComfyUI or SwarmUI). The direct URL and workflow list below are ComfyUI-only extras.</div>
+                <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+                    <label for="ig_connection" style="font-size:0.75rem; color:var(--text-muted);">Image connection:</label>
+                    <select id="ig_connection" class="mtab-input" style="flex:1; min-width:200px;">
+                        <option value="">Loading…</option>
+                    </select>
+                </div>
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <input type="text" id="ig_url" class="ps-modern-input" value="${s.comfyUrl}" placeholder="http://127.0.0.1:8188" style="flex: 1;" />
                     <button id="ig_test_btn" class="ps-modern-btn secondary" style="padding: 0 15px;"><i class="fa-solid fa-wifi"></i> Test</button>
@@ -150,10 +157,13 @@ export function renderImageGen(c) {
                             <select id="ig_template" class="ps-modern-input" style="padding: 8px; font-size: 0.8rem; cursor: pointer;">
                                 <option value="illus_cinematic" ${s.promptTemplate === 'illus_cinematic' ? 'selected' : ''}>Illustrious/Anima + Cinematic</option>
                                 <option value="sdxl_cinematic" ${s.promptTemplate === 'sdxl_cinematic' ? 'selected' : ''}>Z Image + Cinematic</option>
+                                <option value="sd_cinematic" ${s.promptTemplate === 'sd_cinematic' ? 'selected' : ''}>SD + Cinematic</option>
                                 <option value="illus_pov" ${s.promptTemplate === 'illus_pov' ? 'selected' : ''}>Illustrious/Anima + POV</option>
                                 <option value="sdxl_pov" ${s.promptTemplate === 'sdxl_pov' ? 'selected' : ''}>Z Image + POV</option>
+                                <option value="sd_pov" ${s.promptTemplate === 'sd_pov' ? 'selected' : ''}>SD + POV</option>
                                 <option value="illus_portrait" ${s.promptTemplate === 'illus_portrait' ? 'selected' : ''}>Illustrious/Anima + Portrait</option>
                                 <option value="sdxl_portrait" ${s.promptTemplate === 'sdxl_portrait' ? 'selected' : ''}>Z Image + Portrait</option>
+                                <option value="sd_portrait" ${s.promptTemplate === 'sd_portrait' ? 'selected' : ''}>SD + Portrait</option>
                             </select>
                         </div>
                         <div style="flex: 1; min-width: 100px;">
@@ -293,14 +303,20 @@ export function renderImageGen(c) {
             { key: "examplesIllusPov", label: "Examples: Illustrious + POV", hint: "" },
             { key: "rulesSdxlPov", label: "Rules: Z Image + POV", hint: "" },
             { key: "examplesSdxlPov", label: "Examples: Z Image + POV", hint: "" },
+            { key: "rulesSdPov", label: "Rules: SD + POV", hint: "" },
+            { key: "examplesSdPov", label: "Examples: SD + POV", hint: "" },
             { key: "rulesIllusCinematic", label: "Rules: Illustrious + Cinematic", hint: "" },
             { key: "examplesIllusCinematic", label: "Examples: Illustrious + Cinematic", hint: "" },
             { key: "rulesSdxlCinematic", label: "Rules: Z Image + Cinematic", hint: "" },
             { key: "examplesSdxlCinematic", label: "Examples: Z Image + Cinematic", hint: "" },
+            { key: "rulesSdCinematic", label: "Rules: SD + Cinematic", hint: "" },
+            { key: "examplesSdCinematic", label: "Examples: SD + Cinematic", hint: "" },
             { key: "rulesIllusPortrait", label: "Rules: Illustrious + Portrait", hint: "" },
             { key: "examplesIllusPortrait", label: "Examples: Illustrious + Portrait", hint: "" },
             { key: "rulesSdxlPortrait", label: "Rules: Z Image + Portrait", hint: "" },
-            { key: "examplesSdxlPortrait", label: "Examples: Z Image + Portrait", hint: "" }
+            { key: "examplesSdxlPortrait", label: "Examples: Z Image + Portrait", hint: "" },
+            { key: "rulesSdPortrait", label: "Rules: SD + Portrait", hint: "" },
+            { key: "examplesSdPortrait", label: "Examples: SD + Portrait", hint: "" }
         ],
         onSave: (val, key) => {
             if (!s.customPrompts) s.customPrompts = JSON.parse(JSON.stringify(DEFAULT_PROMPTS.imageGen));
@@ -381,6 +397,11 @@ export function renderImageGen(c) {
     $("#ig_save_character").on("change", (e) => {
         s.saveToCharacterId = $(e.target).val() || "";
         saveProfileToMemory();
+    });
+    $("#ig_connection").on("change", (e) => {
+        s.connectionId = $(e.target).val() || "";
+        saveProfileToMemory();
+        igRefreshProviderBadge();
     });
     $("#ig_trigger_mode").on("change", (e) => {
         s.triggerMode = $(e.target).val();
@@ -506,12 +527,47 @@ export function renderImageGen(c) {
         igPopulateWorkflows();
         igFetchComfyLists();
         igPopulateSaveToCharacter();
+        igPopulateConnections();
     }
 }
 
 // -------------------------------------------------------------
 // STAGE 8 HELPER FUNCTIONS
 // -------------------------------------------------------------
+
+// Resolves the active image generation connection (Lumiverse image connection).
+// Mirrors the backend resolveImageConnection(): profile override, else default/first.
+async function igGetActiveImageConnection() {
+    try {
+        const s = localProfile.imageGen;
+        const conns = await call("image:connections", {}, { timeout: 15000 });
+        if (!Array.isArray(conns) || !conns.length) return null;
+        if (s.connectionId) {
+            const match = conns.find(c => c.id === s.connectionId);
+            if (match) return match;
+        }
+        const def = conns.find(c => c.isDefault || c.is_default);
+        return def || conns[0];
+    } catch (e) {
+        console.error("[ig] image:connections lookup failed:", e);
+        return null;
+    }
+}
+
+// Updates the provider badge in the Image Server & Workflow panel.
+async function igRefreshProviderBadge() {
+    const badge = $("#ig_provider_badge");
+    if (!badge.length) return;
+    const conn = await igGetActiveImageConnection();
+    if (!conn) {
+        badge.text("no image connection").css({ color: "var(--text-muted)" });
+        return;
+    }
+    const prov = String(conn.provider || "image").toLowerCase();
+    badge.text(prov === "swarmui" ? "SwarmUI" : prov === "comfyui" ? "ComfyUI" : prov);
+    badge.css({ color: "var(--text-primary)" });
+}
+
 export async function igFetchComfyLists() {
     const s = localProfile.imageGen;
     const url = s.comfyUrl;
@@ -594,6 +650,34 @@ export function igResolveSaveTarget() {
     if (!id) return { characterId: null, name: chatName };
     const known = igCharacterList.find(c => c.id === id);
     return { characterId: id, name: known ? known.name : chatName };
+}
+
+// Populates the Lumiverse image-connection picker (ComfyUI or SwarmUI).
+// Blank = Lumiverse default, exactly like the backend resolveImageConnection().
+export async function igPopulateConnections() {
+    const sel = $("#ig_connection");
+    const s = localProfile.imageGen;
+    let conns = [];
+    try {
+        conns = await call("image:connections", {}, { timeout: 15000 }) || [];
+    } catch (e) {
+        console.warn("[Megumin-Suite] image:connections failed", e);
+    }
+    sel.empty();
+    sel.append($("<option>").attr("value", "").text("Lumiverse default"));
+    for (const c of conns) {
+        const prov = String(c.provider || "image").toLowerCase();
+        const label = prov === "swarmui" ? "SwarmUI" : prov === "comfyui" ? "ComfyUI" : prov;
+        sel.append($("<option>").attr("value", c.id).text(`${c.name || c.id} (${label})`));
+    }
+    const saved = (s.connectionId || "").trim();
+    if (saved && conns.some(c => c.id === saved)) {
+        sel.val(saved);
+    } else {
+        if (saved) { s.connectionId = ""; saveProfileToMemory(); }
+        sel.val("");
+    }
+    igRefreshProviderBadge();
 }
 
 // Describe an unknown ComfyUI node type for workflow conversion: ask the
@@ -786,8 +870,9 @@ export async function igManualGenerate() {
         const match = promptText.match(imgRegex);
         if (match) promptText = match[2];
 
-        toastr.info("Sending to ComfyUI...", "Megumin Suite");
-        igGenerateWithComfy(promptText, null);
+        // The dispatcher routes SwarmUI (and other provider connections) through
+        // Lumiverse's imageGen API and keeps ComfyUI on the direct path.
+        igGenerateImage(promptText, null);
 
     } catch (e) {
         console.error(e);
@@ -815,10 +900,13 @@ export async function generateImagePromptText() {
     const map = {
         "illus_pov": ["rulesIllusPov", "examplesIllusPov"],
         "sdxl_pov": ["rulesSdxlPov", "examplesSdxlPov"],
+        "sd_pov": ["rulesSdPov", "examplesSdPov"],
         "illus_cinematic": ["rulesIllusCinematic", "examplesIllusCinematic"],
         "sdxl_cinematic": ["rulesSdxlCinematic", "examplesSdxlCinematic"],
+        "sd_cinematic": ["rulesSdCinematic", "examplesSdCinematic"],
         "illus_portrait": ["rulesIllusPortrait", "examplesIllusPortrait"],
-        "sdxl_portrait": ["rulesSdxlPortrait", "examplesSdxlPortrait"]
+        "sdxl_portrait": ["rulesSdxlPortrait", "examplesSdxlPortrait"],
+        "sd_portrait": ["rulesSdPortrait", "examplesSdPortrait"]
     };
 
     const keys = map[tmpl];
@@ -936,7 +1024,7 @@ export function addKazumaRetryButtons(msgIndex) {
             }
 
             toastr.info("Regenerating inline image...");
-            igGenerateWithComfy(prompt, { message: msg, index: currentMsgIndex, mode: "inline", isInlineAuto: true, placeholderId: wrapperId });
+            igGenerateImage(prompt, { message: msg, index: currentMsgIndex, mode: "inline", isInlineAuto: true, placeholderId: wrapperId });
         });
 
         wrapper.appendChild(btn);
@@ -954,51 +1042,18 @@ export function kazumaRetrySweep(msgIndex) {
     }, ms));
 }
 
-export async function igGenerateWithComfy(positivePrompt, target = null) {
+// ────────────────────────────────────────────────────────────────────────────
+// Shared generation pipeline. The direct ComfyUI path and the provider path
+// (SwarmUI via Lumiverse's imageGen API) both prepare the prompt, optionally
+// preview it, bind the tab's settings into the selected workflow, and insert
+// the finished image the same way — only the submit step differs.
+// ────────────────────────────────────────────────────────────────────────────
+
+// LoRA trigger words + the custom prefix ride ahead of the scene description.
+function igPreparePrompt(promptText) {
     const s = localProfile.imageGen;
-    let finalPrompt = positivePrompt;
+    let finalPrompt = promptText;
 
-    // This one writes into a CHAT MESSAGE and calls saveChat(), not into a profile, so
-    // _loadedProfileKey is the wrong thing to check: what matters is whether the message
-    // being written to is still part of the chat that is open. `target.message` and
-    // `target.index` are captured before a prompt popup, a ComfyUI submit and a 1s poll
-    // loop; by the time an image comes back the user can be several chats away, and
-    // target.index would then point at whatever message happens to sit at that position.
-    const igChatId = getContext().chatId ?? null;
-    const igGroupId = getContext().groupId ?? null;
-    // Re-resolve instead of trusting the captured index, since deleting or swiping a
-    // message above the target shifts everything below it. Object identity is checked
-    // first, then the inline placeholder id, which is unique and lives in the message
-    // text itself so it survives the message object being rebuilt on a chat reload.
-    const igResolveTarget = () => {
-        const ctx = getContext();
-        if ((ctx.chatId ?? null) !== igChatId || (ctx.groupId ?? null) !== igGroupId) return false;
-        if (!target || !target.message) return true; // free-standing insert: the chat check above is the whole test
-        const chat = ctx.chat;
-        if (!Array.isArray(chat)) return false;
-        if (chat[target.index] === target.message) return true;
-        const moved = chat.indexOf(target.message);
-        if (moved !== -1) { target.index = moved; return true; }
-        if (target.placeholderId) {
-            const byId = chat.findIndex(m => typeof m?.mes === "string" && m.mes.includes(target.placeholderId));
-            if (byId !== -1) { target.message = chat[byId]; target.index = byId; return true; }
-        }
-        // Gallery inserts carry no placeholder, so a chat reload inside the SAME chat would
-        // otherwise lose them: reloadCurrentChat() rebuilds every message object. send_date
-        // plus sender is stable across that rebuild and unique enough within one chat.
-        if (target.message.send_date !== undefined) {
-            const byStamp = chat.findIndex(m => m?.send_date === target.message.send_date
-                && m?.name === target.message.name
-                && !!m?.is_user === !!target.message.is_user);
-            if (byStamp !== -1) { target.message = chat[byStamp]; target.index = byStamp; return true; }
-        }
-        return false;
-    };
-    const igDeclineWrite = (what) => {
-        console.debug(`[Megumin-Suite] Image gen ${what} declined: it was started for chat "${igChatId}" message ${target?.index}, which is no longer reachable in the open chat. Nothing was written, so no unrelated message was edited. Any leftover "[Generating Image...]" placeholder in the original chat is cosmetic and clears on the next edit of that message.`);
-    };
-
-    // --- INJECT LORA TRIGGER WORDS ---
     let loraTriggers = [];
     if (s.selectedLora && s.selectedLora.trim() !== "" && s.loraTrigger1) loraTriggers.push(s.loraTrigger1.trim());
     if (s.selectedLora2 && s.selectedLora2.trim() !== "" && s.loraTrigger2) loraTriggers.push(s.loraTrigger2.trim());
@@ -1011,50 +1066,56 @@ export async function igGenerateWithComfy(positivePrompt, target = null) {
         finalPrompt = combinedTriggers + " " + finalPrompt;
     }
 
-    // --- INJECT PREFIX ---
     if (s.promptPrefix && s.promptPrefix.trim() !== "") {
         let prefix = s.promptPrefix.trim();
         if (!prefix.endsWith(",")) prefix += ",";
         finalPrompt = prefix + " " + finalPrompt;
     }
+    return finalPrompt;
+}
 
-    // --- INTERCEPT PROMPT IF PREVIEW IS ENABLED ---
-    if (s.previewPrompt) {
-        $("#kazuma_progress_overlay").hide(); // Hide the progress bar temporarily
+// Preview popup. Returns the (possibly edited) prompt, or null on cancel/empty.
+async function igPreviewPromptText(finalPrompt) {
+    $("#kazuma_progress_overlay").hide(); // Hide the progress bar temporarily
 
-        const $content = $(`
-            <div style="display:flex; flex-direction:column; gap:10px; font-family: 'Inter', sans-serif;">
-                <div style="font-size: 0.85rem; color: var(--text-muted);">Review or modify the prompt before it goes to ComfyUI.</div>
-                <textarea class="ps-modern-input ig-preview-textarea" style="height: 150px; resize: vertical; font-family: monospace; font-size: 0.85rem; padding: 10px;">${finalPrompt}</textarea>
-            </div>
-        `);
+    const $content = $(`
+        <div style="display:flex; flex-direction:column; gap:10px; font-family: 'Inter', sans-serif;">
+            <div style="font-size: 0.85rem; color: var(--text-muted);">Review or modify the prompt before it is sent for generation.</div>
+            <textarea class="ps-modern-input ig-preview-textarea" style="height: 150px; resize: vertical; font-family: monospace; font-size: 0.85rem; padding: 10px;">${finalPrompt}</textarea>
+        </div>
+    `);
 
-        // CRITICAL FIX: SillyTavern destroys the popup HTML when it closes. 
-        // We MUST capture the text while the user is typing!
-        let liveText = finalPrompt;
-        $content.find(".ig-preview-textarea").on("input", function () {
-            liveText = $(this).val();
-        });
+    // CRITICAL FIX: SillyTavern destroys the popup HTML when it closes.
+    // We MUST capture the text while the user is typing!
+    let liveText = finalPrompt;
+    $content.find(".ig-preview-textarea").on("input", function () {
+        liveText = $(this).val();
+    });
 
-        const popup = new Popup($content, POPUP_TYPE.CONFIRM, "Preview Image Prompt", { okButton: "Send to ComfyUI", cancelButton: "Cancel", wide: true });
-        const confirmed = await popup.show();
+    const popup = new Popup($content, POPUP_TYPE.CONFIRM, "Preview Image Prompt", { okButton: "Generate", cancelButton: "Cancel", wide: true });
+    const confirmed = await popup.show();
 
-        if (!confirmed) {
-            toastr.info("Generation cancelled.");
-            return;
-        }
-
-        finalPrompt = liveText.trim();
-        if (!finalPrompt) return toastr.warning("Prompt cannot be empty.");
-
-        showKazumaProgress("Preparing to Render..."); // Bring progress bar back
+    if (!confirmed) {
+        toastr.info("Generation cancelled.");
+        return null;
     }
 
+    const edited = liveText.trim();
+    if (!edited) { toastr.warning("Prompt cannot be empty."); return null; }
+
+    showKazumaProgress("Preparing to Render..."); // Bring progress bar back
+    return edited;
+}
+
+// Loads the selected workflow file and binds the tab's settings into it.
+// Throws when the workflow cannot be loaded.
+async function igLoadAndBindWorkflow(finalPrompt) {
+    const s = localProfile.imageGen;
     let workflowRaw;
     try {
         const res = await comfyFetch('/api/sd/comfy/workflow', { method: 'POST', headers: getRequestHeaders(), body: JSON.stringify({ file_name: s.currentWorkflowName }) });
         if (!res.ok) throw new Error("Load failed"); workflowRaw = await res.json();
-    } catch (e) { return toastr.error(`Could not load ${s.currentWorkflowName}`); }
+    } catch (e) { throw new Error(`Could not load ${s.currentWorkflowName}`); }
 
     let workflow = (typeof workflowRaw === 'string') ? JSON.parse(workflowRaw) : workflowRaw;
     let finalSeed = parseInt(s.customSeed); if (finalSeed === -1 || isNaN(finalSeed)) finalSeed = Math.floor(Math.random() * 1000000000);
@@ -1082,10 +1143,178 @@ export async function igGenerateWithComfy(positivePrompt, target = null) {
             { name: s.selectedLora4, weight: s.selectedLoraWt4 },
         ],
     });
-    workflow = bound.workflow;
     if (bound.warnings.length > 0) {
         console.warn(`[Megumin Suite] workflow binding warnings for ${s.currentWorkflowName}:`, bound.warnings);
     }
+    return { workflow: bound.workflow, finalSeed };
+}
+
+// Re-resolves the target message in the currently open chat. The message being
+// written to must still be part of the chat that is open — this one writes into
+// a CHAT MESSAGE and calls saveChat(), not into a profile, so _loadedProfileKey
+// is the wrong thing to check.
+function igResolveTargetInChat(chatId, groupId, target) {
+    const ctx = getContext();
+    if ((ctx.chatId ?? null) !== chatId || (ctx.groupId ?? null) !== groupId) return false;
+    if (!target || !target.message) return true; // free-standing insert: the chat check above is the whole test
+    const chat = ctx.chat;
+    if (!Array.isArray(chat)) return false;
+    if (chat[target.index] === target.message) return true;
+    const moved = chat.indexOf(target.message);
+    if (moved !== -1) { target.index = moved; return true; }
+    if (target.placeholderId) {
+        const byId = chat.findIndex(m => typeof m?.mes === "string" && m.mes.includes(target.placeholderId));
+        if (byId !== -1) { target.message = chat[byId]; target.index = byId; return true; }
+    }
+    // Gallery inserts carry no placeholder, so a chat reload inside the SAME chat would
+    // otherwise lose them: reloadCurrentChat() rebuilds every message object. send_date
+    // plus sender is stable across that rebuild and unique enough within one chat.
+    if (target.message.send_date !== undefined) {
+        const byStamp = chat.findIndex(m => m?.send_date === target.message.send_date
+            && m?.name === target.message.name
+            && !!m?.is_user === !!target.message.is_user);
+        if (byStamp !== -1) { target.message = chat[byStamp]; target.index = byStamp; return true; }
+    }
+    return false;
+}
+
+function igDeclineWriteInChat(what, chatId, target) {
+    console.debug(`[Megumin-Suite] Image gen ${what} declined: it was started for chat "${chatId}" message ${target?.index}, which is no longer reachable in the open chat. Nothing was written, so no unrelated message was edited. Any leftover "[Generating Image...]" placeholder in the original chat is cosmetic and clears on the next edit of that message.`);
+}
+
+// Compresses a data URL to JPEG when the tab asks for it. Returns { dataUrl, format }.
+function igCompressDataUrl(base64Raw) {
+    const s = localProfile.imageGen;
+    if (!s.compressImages) return Promise.resolve({ dataUrl: base64Raw, format: "png" });
+    return new Promise((res) => {
+        const img = new Image(); img.src = base64Raw;
+        img.onload = () => {
+            const cvs = document.createElement('canvas');
+            cvs.width = img.width; cvs.height = img.height;
+            cvs.getContext('2d').drawImage(img, 0, 0);
+            res({ dataUrl: cvs.toDataURL("image/jpeg", 0.9), format: "jpeg" });
+        };
+        img.onerror = () => res({ dataUrl: base64Raw, format: "png" });
+    });
+}
+
+// Inserts a finished image: inline into the target message, into the target's
+// gallery, or as a brand-new message when there is no target.
+async function igInsertGeneratedImage({ base64Clean, format, finalPrompt, target, chatId, groupId }) {
+    if (!igResolveTargetInChat(chatId, groupId, target)) {
+        igDeclineWriteInChat("insert", chatId, target);
+        return;
+    }
+    const saveTarget = igResolveSaveTarget();
+    const charName = saveTarget.name;
+    const savedPath = await saveBase64AsFile(base64Clean.split(',')[1], charName, `${charName}_${humanizedDateTime()}`, format, saveTarget.characterId || undefined);
+    const mediaAttach = {
+        url: savedPath,
+        type: "image",
+        source: "generated",
+        title: finalPrompt,
+        generation_type: "free"
+    };
+
+    if (target && target.isInlineAuto && target.mode === "inline") {
+        const safePrompt = finalPrompt.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        const wrapperId = target.placeholderId || `kazuma-img-${Date.now()}`;
+        const imgTag = `<!-- kazuma-inline-start:${wrapperId} --><div id="${wrapperId}" class="kazuma-img-wrapper">
+<img src="${savedPath}" title="${safePrompt}" alt="KazumaInline" data-kazumaid="${wrapperId}" style="max-width: 100%; border-radius: 8px; display: block;" />
+</div><!-- kazuma-inline-end:${wrapperId} -->`;
+
+        if (target.placeholderId && target.message.mes.includes(`id="${target.placeholderId}"`)) {
+            const specificPlaceholderRegex = new RegExp(`<div id="${target.placeholderId}"[^>]*>.*?<\\/div>`, "g");
+            target.message.mes = target.message.mes.replace(specificPlaceholderRegex, imgTag);
+        } else {
+            const placeholderRegex = /<div class="kazuma-img-placeholder"[^>]*>\[(Generating|Regenerating) Image\.\.\.\]<\/div>/g;
+            if (placeholderRegex.test(target.message.mes)) {
+                target.message.mes = target.message.mes.replace(placeholderRegex, imgTag);
+            } else {
+                target.message.mes += `\n\n${imgTag}`;
+            }
+        }
+
+        // Queue the retry buttons before the redraw, not after it.
+        // The passes run on their own timers so they still land
+        // after SillyTavern has drawn, and they survive anything
+        // below here throwing into the empty catch.
+        kazumaRetrySweep(target.index);
+
+        await saveChat();
+        if (typeof updateMessageBlock === "function") {
+            updateMessageBlock(target.index, target.message);
+            // The rebuild dropped the block card with the rest of the body.
+            meguminScheduleBlocksRefresh();
+        } else {
+            await reloadCurrentChat();
+        }
+        toastr.success("Image injected inline!");
+    } else if (target && target.message && !target.isInlineAuto) {
+        if (!target.message.extra) target.message.extra = {}; if (!target.message.extra.media) target.message.extra.media = [];
+        target.message.extra.media_display = "gallery"; target.message.extra.media.push(mediaAttach); target.message.extra.media_index = target.message.extra.media.length - 1;
+        if (typeof appendMediaToMessage === "function") appendMediaToMessage(target.message, target.element);
+        await saveChat(); toastr.success("Gallery updated!");
+    } else {
+        const newMsg = { name: "Image Gen Kazuma", is_user: false, is_system: true, send_date: Date.now(), mes: "", extra: { media: [mediaAttach], media_display: "gallery", media_index: 0 }, force_avatar: "img/five.png" };
+        getContext().chat.push(newMsg); await saveChat();
+        if (typeof addOneMessage === "function") addOneMessage(newMsg); else await reloadCurrentChat();
+        toastr.success("Image inserted!");
+    }
+}
+
+// Writes the red inline failure tag when an inline auto-generation fails.
+// message is appended after "Image Generation Failed" when provided.
+async function igWriteInlineFailure({ target, finalPrompt, message, chatId, groupId }) {
+    if (!target || !target.isInlineAuto || target.mode !== "inline") return;
+    if (!igResolveTargetInChat(chatId, groupId, target)) {
+        igDeclineWriteInChat("failure notice", chatId, target);
+        return;
+    }
+    const wrapperId = target.placeholderId || `kazuma-img-${Date.now()}`;
+    const safePrompt = finalPrompt.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const label = message ? `[Image Generation Failed: ${message}]` : `[Image Generation Failed]`;
+    const failTag = `<!-- kazuma-inline-start:${wrapperId} --><div id="${wrapperId}" class="kazuma-img-wrapper" style="color:#ef4444; font-style: italic; margin: 10px 0;"><span>${label}</span> <img alt="KazumaInline" data-kazumaid="${wrapperId}" title="${safePrompt}" style="display:none;" /></div><!-- kazuma-inline-end:${wrapperId} -->`;
+
+    if (target.placeholderId && target.message.mes.includes(`id="${target.placeholderId}"`)) {
+        const specificPlaceholderRegex = new RegExp(`<div id="${target.placeholderId}"[^>]*>.*?<\\/div>`, "g");
+        target.message.mes = target.message.mes.replace(specificPlaceholderRegex, failTag);
+    } else {
+        const placeholderRegex = /<div class="kazuma-img-placeholder"[^>]*>\[(Generating|Regenerating) Image\.\.\.\]<\/div>/g;
+        target.message.mes = target.message.mes.replace(placeholderRegex, failTag);
+    }
+    kazumaRetrySweep(target.index);
+    saveChat();
+    if (typeof updateMessageBlock === "function") {
+        updateMessageBlock(target.index, target.message);
+        // The rebuild dropped the block card with the rest of the body.
+        meguminScheduleBlocksRefresh();
+    }
+}
+
+export async function igGenerateWithComfy(positivePrompt, target = null) {
+    const s = localProfile.imageGen;
+    let finalPrompt = positivePrompt;
+
+    // This one writes into a CHAT MESSAGE and calls saveChat(), not into a profile, so
+    // _loadedProfileKey is the wrong thing to check: what matters is whether the message
+    // being written to is still part of the chat that is open.
+    const igChatId = getContext().chatId ?? null;
+    const igGroupId = getContext().groupId ?? null;
+
+    let workflow;
+    try {
+        finalPrompt = igPreparePrompt(positivePrompt);
+
+        // --- INTERCEPT PROMPT IF PREVIEW IS ENABLED ---
+        if (s.previewPrompt) {
+            const previewed = await igPreviewPromptText(finalPrompt);
+            if (previewed === null) { $("#kazuma_progress_overlay").hide(); return; }
+            finalPrompt = previewed;
+        }
+
+        ({ workflow } = await igLoadAndBindWorkflow(finalPrompt));
+    } catch (e) { return toastr.error(e.message); }
 
     // ComfyUI reports real step progress, but only to the client id that queued
     // the job — so the same id must go to the socket and into the /prompt body.
@@ -1120,99 +1349,14 @@ export async function igGenerateWithComfy(positivePrompt, target = null) {
                         // Download & Compress
                         const response = await comfyFetch(imgUrl); const blob = await response.blob();
                         const base64Raw = await new Promise((res) => { const r = new FileReader(); r.onloadend = () => res(r.result); r.readAsDataURL(blob); });
-                        let base64Clean = base64Raw; let format = "png";
-                        if (s.compressImages) {
-                            base64Clean = await new Promise((res) => { const img = new Image(); img.src = base64Raw; img.onload = () => { const cvs = document.createElement('canvas'); cvs.width = img.width; cvs.height = img.height; cvs.getContext('2d').drawImage(img, 0, 0); res(cvs.toDataURL("image/jpeg", 0.9)); }; img.onerror = () => res(base64Raw); });
-                            format = "jpeg";
-                        }
+                        const { dataUrl: base64Clean, format } = await igCompressDataUrl(base64Raw);
 
                         // Insert to Chat
-                        if (!igResolveTarget()) {
-                            igDeclineWrite("insert");
-                            progress.close(); $("#kazuma_progress_overlay").hide();
-                            return;
-                        }
-                        const saveTarget = igResolveSaveTarget();
-                        const charName = saveTarget.name;
-                        const savedPath = await saveBase64AsFile(base64Clean.split(',')[1], charName, `${charName}_${humanizedDateTime()}`, format, saveTarget.characterId || undefined);
-                        const mediaAttach = {
-                            url: savedPath,
-                            type: "image",
-                            source: "generated",
-                            title: finalPrompt,
-                            generation_type: "free"
-                        };
-
-                        if (target && target.isInlineAuto && target.mode === "inline") {
-                            const safePrompt = finalPrompt.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-                            const wrapperId = target.placeholderId || `kazuma-img-${Date.now()}`;
-                            const imgTag = `<!-- kazuma-inline-start:${wrapperId} --><div id="${wrapperId}" class="kazuma-img-wrapper">
-<img src="${savedPath}" title="${safePrompt}" alt="KazumaInline" data-kazumaid="${wrapperId}" style="max-width: 100%; border-radius: 8px; display: block;" />
-</div><!-- kazuma-inline-end:${wrapperId} -->`;
-                            
-                            if (target.placeholderId && target.message.mes.includes(`id="${target.placeholderId}"`)) {
-                                const specificPlaceholderRegex = new RegExp(`<div id="${target.placeholderId}"[^>]*>.*?<\/div>`, "g");
-                                target.message.mes = target.message.mes.replace(specificPlaceholderRegex, imgTag);
-                            } else {
-                                const placeholderRegex = /<div class="kazuma-img-placeholder"[^>]*>\[(Generating|Regenerating) Image\.\.\.\]<\/div>/g;
-                                if (placeholderRegex.test(target.message.mes)) {
-                                    target.message.mes = target.message.mes.replace(placeholderRegex, imgTag);
-                                } else {
-                                    target.message.mes += `\n\n${imgTag}`;
-                                }
-                            }
-                            
-                            // Queue the retry buttons before the redraw, not after it.
-                            // The passes run on their own timers so they still land
-                            // after SillyTavern has drawn, and they survive anything
-                            // below here throwing into the empty catch.
-                            kazumaRetrySweep(target.index);
-
-                            await saveChat();
-                            if (typeof updateMessageBlock === "function") {
-                                updateMessageBlock(target.index, target.message);
-                                // The rebuild dropped the block card with the rest of the body.
-                                meguminScheduleBlocksRefresh();
-                            } else {
-                                await reloadCurrentChat();
-                            }
-                            toastr.success("Image injected inline!");
-                        } else if (target && target.message && !target.isInlineAuto) {
-                            if (!target.message.extra) target.message.extra = {}; if (!target.message.extra.media) target.message.extra.media = [];
-                            target.message.extra.media_display = "gallery"; target.message.extra.media.push(mediaAttach); target.message.extra.media_index = target.message.extra.media.length - 1;
-                            if (typeof appendMediaToMessage === "function") appendMediaToMessage(target.message, target.element);
-                            await saveChat(); toastr.success("Gallery updated!");
-                        } else {
-                            const newMsg = { name: "Image Gen Kazuma", is_user: false, is_system: true, send_date: Date.now(), mes: "", extra: { media: [mediaAttach], media_display: "gallery", media_index: 0 }, force_avatar: "img/five.png" };
-                            getContext().chat.push(newMsg); await saveChat();
-                            if (typeof addOneMessage === "function") addOneMessage(newMsg); else await reloadCurrentChat();
-                            toastr.success("Image inserted!");
-                        }
+                        await igInsertGeneratedImage({ base64Clean, format, finalPrompt, target, chatId: igChatId, groupId: igGroupId });
                         progress.close(); $("#kazuma_progress_overlay").hide();
                     } else {
                         progress.close(); $("#kazuma_progress_overlay").hide();
-                        if (target && target.isInlineAuto && target.mode === "inline" && !igResolveTarget()) {
-                            igDeclineWrite("failure notice");
-                        } else if (target && target.isInlineAuto && target.mode === "inline") {
-                            const wrapperId = target.placeholderId || `kazuma-img-${Date.now()}`;
-                            const safePrompt = finalPrompt.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-                            const failTag = `<!-- kazuma-inline-start:${wrapperId} --><div id="${wrapperId}" class="kazuma-img-wrapper" style="color:#ef4444; font-style: italic; margin: 10px 0;"><span>[Image Generation Failed]</span> <img alt="KazumaInline" data-kazumaid="${wrapperId}" title="${safePrompt}" style="display:none;" /></div><!-- kazuma-inline-end:${wrapperId} -->`;
-                            
-                            if (target.placeholderId && target.message.mes.includes(`id="${target.placeholderId}"`)) {
-                                const specificPlaceholderRegex = new RegExp(`<div id="${target.placeholderId}" class="kazuma-img-placeholder"[^>]*>.*?<\\/div>`, "g");
-                                target.message.mes = target.message.mes.replace(specificPlaceholderRegex, failTag);
-                            } else {
-                                const placeholderRegex = /<div class="kazuma-img-placeholder"[^>]*>\[(Generating|Regenerating) Image\.\.\.\]<\/div>/g;
-                                target.message.mes = target.message.mes.replace(placeholderRegex, failTag);
-                            }
-                            kazumaRetrySweep(target.index);
-                            saveChat();
-                            if (typeof updateMessageBlock === "function") {
-                                updateMessageBlock(target.index, target.message);
-                                // The rebuild dropped the block card with the rest of the body.
-                                meguminScheduleBlocksRefresh();
-                            }
-                        }
+                        await igWriteInlineFailure({ target, finalPrompt, message: "", chatId: igChatId, groupId: igGroupId });
                     }
                 }
             } catch (e) { }
@@ -1220,29 +1364,83 @@ export async function igGenerateWithComfy(positivePrompt, target = null) {
     } catch (e) {
         progress.close(); $("#kazuma_progress_overlay").hide();
         toastr.error("Comfy Error: " + e.message);
-        if (target && target.isInlineAuto && target.mode === "inline" && !igResolveTarget()) {
-            igDeclineWrite("error notice");
-        } else if (target && target.isInlineAuto && target.mode === "inline") {
-            const wrapperId = target.placeholderId || `kazuma-img-${Date.now()}`;
-            const safePrompt = finalPrompt.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-            const failTag = `<!-- kazuma-inline-start:${wrapperId} --><div id="${wrapperId}" class="kazuma-img-wrapper" style="color:#ef4444; font-style: italic; margin: 10px 0;"><span>[Image Generation Failed: ${e.message}]</span> <img alt="KazumaInline" data-kazumaid="${wrapperId}" title="${safePrompt}" style="display:none;" /></div><!-- kazuma-inline-end:${wrapperId} -->`;
-            
-            if (target.placeholderId && target.message.mes.includes(`id="${target.placeholderId}"`)) {
-                const specificPlaceholderRegex = new RegExp(`<div id="${target.placeholderId}" class="kazuma-img-placeholder"[^>]*>.*?<\\/div>`, "g");
-                target.message.mes = target.message.mes.replace(specificPlaceholderRegex, failTag);
-            } else {
-                const placeholderRegex = /<div class="kazuma-img-placeholder"[^>]*>\[(Generating|Regenerating) Image\.\.\.\]<\/div>/g;
-                target.message.mes = target.message.mes.replace(placeholderRegex, failTag);
-            }
-            kazumaRetrySweep(target.index);
-            saveChat();
-            if (typeof updateMessageBlock === "function") {
-                updateMessageBlock(target.index, target.message);
-                // The rebuild dropped the block card with the rest of the body.
-                meguminScheduleBlocksRefresh();
-            }
-        }
+        await igWriteInlineFailure({ target, finalPrompt, message: e.message, chatId: igChatId, groupId: igGroupId });
     }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Provider path (SwarmUI and friends). Same prompt preparation, preview,
+// workflow binding, and chat insertion as the direct ComfyUI path — only the
+// submit step differs: the bound workflow rides along to Lumiverse's imageGen
+// API, which runs it on the selected provider (SwarmUI executes the workflow
+// through /ComfyBackendDirect).
+// ────────────────────────────────────────────────────────────────────────────
+export async function igGenerateViaProvider(positivePrompt, conn, target = null) {
+    const s = localProfile.imageGen;
+    let finalPrompt = positivePrompt;
+
+    // Same chat-safety contract as the direct path: whatever this writes into
+    // a message must still be part of the chat that is open.
+    const igChatId = getContext().chatId ?? null;
+    const igGroupId = getContext().groupId ?? null;
+
+    showKazumaProgress(`Sending to ${conn.provider}...`);
+    try {
+        finalPrompt = igPreparePrompt(positivePrompt);
+
+        // --- INTERCEPT PROMPT IF PREVIEW IS ENABLED ---
+        if (s.previewPrompt) {
+            const previewed = await igPreviewPromptText(finalPrompt);
+            if (previewed === null) { $("#kazuma_progress_overlay").hide(); return; }
+            finalPrompt = previewed;
+        }
+
+        let workflow;
+        try {
+            ({ workflow } = await igLoadAndBindWorkflow(finalPrompt));
+        } catch (e) { $("#kazuma_progress_overlay").hide(); return toastr.error(e.message); }
+
+        showKazumaProgress(`Generating on ${conn.provider}...`);
+        const saveTarget = igResolveSaveTarget();
+        const res = await call("image:generate", {
+            prompt: finalPrompt,
+            negativePrompt: s.customNegative || "",
+            connectionId: conn.id,
+            parameters: {
+                // The workflow carries the bound prompt, seed, sampler,
+                // checkpoint, LoRAs, and latent size — the provider runs it as-is.
+                workflow,
+                model: s.selectedModel || undefined,
+                width: s.imgWidth,
+                height: s.imgHeight,
+                steps: s.steps,
+                cfg: s.cfg,
+            },
+            ownerCharacterId: saveTarget.characterId || undefined,
+        }, { timeout: 300000 });
+
+        if (!res || !res.imageDataUrl) throw new Error(res?.error || "The provider returned no image.");
+
+        const { dataUrl: base64Clean, format } = await igCompressDataUrl(res.imageDataUrl);
+        await igInsertGeneratedImage({ base64Clean, format, finalPrompt, target, chatId: igChatId, groupId: igGroupId });
+        $("#kazuma_progress_overlay").hide();
+        toastr.success(`Image generated via ${conn.provider}!`);
+    } catch (e) {
+        $("#kazuma_progress_overlay").hide();
+        toastr.error(`${conn.provider} error: ` + e.message);
+        await igWriteInlineFailure({ target, finalPrompt, message: e.message, chatId: igChatId, groupId: igGroupId });
+    }
+}
+
+// Dispatcher: a non-ComfyUI provider connection (SwarmUI) goes through
+// Lumiverse's imageGen API; ComfyUI — or no connection selected — keeps the
+// direct websocket/history path exactly as before.
+export async function igGenerateImage(positivePrompt, target = null) {
+    const conn = await igGetActiveImageConnection();
+    if (conn && String(conn.provider || "").toLowerCase() !== "comfyui") {
+        return igGenerateViaProvider(positivePrompt, conn, target);
+    }
+    return igGenerateWithComfy(positivePrompt, target);
 }
 
 // ────────────────────────────────────────────────────────────────────────────

@@ -23,7 +23,7 @@ import { getCharacterKey, getProfileLevel } from "./core/keys.js";
 import { extensionName } from "./core/constants.js";
 import { initProfile } from "./core/profile.js";
 import { onMessageReceived, IMG_TAG_RE } from "./features/afterReply.js";
-import { igGenerateWithComfy } from "./features/imagegen/index.js";
+import { igGenerateImage } from "./features/imagegen/index.js";
 import { attachBlockCards, scheduleBlockRefresh } from "./blocks/chat.js";
 import { call } from "./bridge.js";
 
@@ -76,7 +76,7 @@ export function installDebugHandle() {
         // Wet: run one prompt through the real generator, exactly as the
         // pipeline does per tag. No message is written to, so it lands wherever
         // the tab's inject mode sends a manual generation.
-        generateImage: (prompt) => igGenerateWithComfy(String(prompt || "").trim() || "a test image"),
+        generateImage: (prompt) => igGenerateImage(String(prompt || "").trim() || "a test image"),
 
         // ── The whole post-reply pipeline ───────────────────────────────────
         //

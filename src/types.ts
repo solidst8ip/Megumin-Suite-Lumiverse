@@ -132,6 +132,8 @@ export interface ImageGenSettings {
   clipSkip: number;
   promptStyle: "standard" | "illustrious" | "sdxl";
   promptPerspective: "scene" | "pov" | "character";
+  /** Single template key chosen by the frontend dropdown (e.g. "sd_cinematic"). */
+  promptTemplate: string;
   promptExtra: string;
   triggerMode: "always" | "manual" | "frequency" | "conditional";
   autoGenFreq: number;

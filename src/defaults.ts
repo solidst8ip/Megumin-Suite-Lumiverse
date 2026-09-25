@@ -125,6 +125,7 @@ export const DEFAULT_PROFILE: MeguminProfile = {
     clipSkip: 1,
     promptStyle: "standard",
     promptPerspective: "scene",
+    promptTemplate: "illus_cinematic",
     promptExtra: "",
     triggerMode: "manual",
     autoGenFreq: 1,

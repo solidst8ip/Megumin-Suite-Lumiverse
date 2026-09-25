@@ -413,10 +413,13 @@ export function buildBaseDict(context = {}, isTokenCount = false) {
             const map = {
                 "illus_pov": ["rulesIllusPov", "examplesIllusPov"],
                 "sdxl_pov": ["rulesSdxlPov", "examplesSdxlPov"],
+                "sd_pov": ["rulesSdPov", "examplesSdPov"],
                 "illus_cinematic": ["rulesIllusCinematic", "examplesIllusCinematic"],
                 "sdxl_cinematic": ["rulesSdxlCinematic", "examplesSdxlCinematic"],
+                "sd_cinematic": ["rulesSdCinematic", "examplesSdCinematic"],
                 "illus_portrait": ["rulesIllusPortrait", "examplesIllusPortrait"],
-                "sdxl_portrait": ["rulesSdxlPortrait", "examplesSdxlPortrait"]
+                "sdxl_portrait": ["rulesSdxlPortrait", "examplesSdxlPortrait"],
+                "sd_portrait": ["rulesSdPortrait", "examplesSdPortrait"]
             };
 
             let rules = "", examples = "";

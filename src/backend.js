@@ -20,6 +20,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { handle, push, installRouter } from "./backend/rpc.js";
+import { readGlobal } from "./backend/profile-store.ts";
 import { enterEngine, resolvePersonaName, toEngineMessages } from "./backend/engine/context.js";
 import { runTask } from "./backend/tasks.js";
 import {
@@ -359,6 +360,79 @@ handle("comfy:image", async ({ url, filename, subfolder, type }, userId) => {
         characterId: (chat && chat.character_id) || null,
         userId,
     });
+});
+
+// -------------------------------------------------------------
+// Image providers (SwarmUI, etc.)
+// -------------------------------------------------------------
+//
+// The direct ComfyUI path above talks to a ComfyUI server itself. Provider
+// connections — SwarmUI first among them — go through the host's imageGen
+// API instead. The frontend binds the tab's workflow before calling, so this
+// side stays a thin router: resolve the connection, hand the request to the
+// host, and return the result untouched. SwarmUI executes
+// parameters.workflow through /ComfyBackendDirect.
+
+async function igResolveConnection(connectionId, userId) {
+    const wanted = (connectionId || "").trim();
+    if (wanted) {
+        try {
+            const c = await spindle.imageGen.getConnection(wanted, userId);
+            if (c && c.id) return c;
+        } catch (e) { console.warn("[Megumin-Suite] image connection lookup failed", e); }
+    }
+    // Fall back to the connection saved on the tab, then the host default.
+    try {
+        const profile = await readGlobal();
+        const saved = (profile?.imageGen?.connectionId || "").trim();
+        if (saved && saved !== wanted) {
+            const c = await spindle.imageGen.getConnection(saved, userId).catch(() => null);
+            if (c && c.id) return c;
+        }
+    } catch (e) { console.warn("[Megumin-Suite] image connection profile fallback failed", e); }
+    try {
+        const connections = await spindle.imageGen.listConnections(userId) || [];
+        return connections.find((c) => c && c.is_default) || connections[0] || null;
+    } catch (e) {
+        console.warn("[Megumin-Suite] image:connections fallback failed", e);
+        return null;
+    }
+}
+
+// The connections the host knows about — what the tab's picker lists and
+// what generation resolves a saved connectionId against.
+handle("image:connections", async (_data, userId) => {
+    try {
+        return await spindle.imageGen.listConnections(userId) || [];
+    } catch (e) {
+        console.warn("[Megumin-Suite] image:connections failed", e);
+        return [];
+    }
+});
+
+handle("image:generate", async ({ prompt, negativePrompt, connectionId, parameters, ownerCharacterId, ownerChatId }, userId) => {
+    const connection = await igResolveConnection(connectionId, userId);
+    if (!connection) throw new Error("No image connection available.");
+    const result = await spindle.imageGen.generate({
+        prompt,
+        connection_id: connection.id,
+        model: parameters?.model || undefined,
+        negativePrompt: negativePrompt || undefined,
+        parameters: parameters || {},
+        // Ownership tags the asset with the character/chat it was made for,
+        // the same way comfy:image tags the direct path's downloads.
+        owner_character_id: ownerCharacterId || undefined,
+        owner_chat_id: ownerChatId || await getActiveChatId(userId) || undefined,
+        userId,
+    });
+    return {
+        imageDataUrl: result?.imageDataUrl || null,
+        imageId: result?.imageId || null,
+        imageUrl: result?.imageUrl || null,
+        provider: result?.provider || connection.provider || null,
+        model: result?.model || parameters?.model || null,
+        connectionId: connection.id,
+    };
 });
 
 // -------------------------------------------------------------

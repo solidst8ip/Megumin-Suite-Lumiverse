@@ -25470,7 +25470,93 @@ Then lighting: soft lighting, studio lighting, natural lighting, side lighting,
    - Any held items near the face or upper body
 4. **Background & Lighting:** Use a simple, non-distracting background. Describe studio-style or natural portrait lighting in the final sentence.`,
   examplesSdxlPortrait: `EXAMPLE — Character Portrait:
-<img prompt="A masterpiece portrait. An upper-body shot of a young elf woman with pale skin and a light dusting of freckles across her nose. She has bright green eyes and long auburn hair pulled into a loose side braid draped over her left shoulder. Small silver leaf-shaped earrings catch the light. She wears a dark green wool tunic under a fitted brown leather vest with a high collar. She holds a small glowing blue flower near her chin and smiles gently, her head tilted slightly to the right, looking directly at the viewer. The background is a soft blur of green forest. Dappled natural light filters through unseen canopy above, creating warm highlights on her hair and soft shadows under her jaw.">`
+<img prompt="A masterpiece portrait. An upper-body shot of a young elf woman with pale skin and a light dusting of freckles across her nose. She has bright green eyes and long auburn hair pulled into a loose side braid draped over her left shoulder. Small silver leaf-shaped earrings catch the light. She wears a dark green wool tunic under a fitted brown leather vest with a high collar. She holds a small glowing blue flower near her chin and smiles gently, her head tilted slightly to the right, looking directly at the viewer. The background is a soft blur of green forest. Dappled natural light filters through unseen canopy above, creating warm highlights on her hair and soft shadows under her jaw.">`,
+  rulesSdPov: `Build the prompt as classic Stable Diffusion tag soup: flat comma-separated tags, NO full sentences. Do NOT rearrange sections.
+
+**SECTION 1 — Quality + POV:**
+Start: masterpiece, best quality, amazing quality, very aesthetic,
+Then POV tags:
+- Observing: pov, first person, looking at viewer, + foreground anchor tag (e.g., foreground, desk edge visible,)
+- Interacting: pov, first person, pov hands, + hand action tags (e.g., male hands, holding silver tray,)
+- NEVER describe the user's face.
+
+**SECTION 2 — Character Count:**
+Booru count tags: 1girl,, 3girls,, 1boy 1girl,,
+
+**SECTION 3 — Character Tags:**
+Flat comma-separated Booru tags for appearance, clothing, expression, pose. Use (emphasis:1.2) on the 2-3 most important traits, e.g., (tear-streaked face:1.2). Keep each tag short.
+
+FOR MULTIPLE CHARACTERS (2+ in frame): group each character's tags together and separate the groups with BREAK, e.g.,
+1girl mature female, pale skin, dark eyes, long black hair, BREAK 1girl rabbit girl, blonde hair, blue eyes,
+so features do not bleed between characters. Add spatial tags inside each group (on the left,, in the center,).
+
+**SECTION 4 — Scene + Lighting (always last):**
+Background and lighting tags: interior background,, night,, volumetric lighting,, depth of field,
+
+**BANS:** No full sentences. No describing the user's face/body.`,
+  examplesSdPov: `EXAMPLE — Single Character:
+<img prompt=\\"masterpiece, best quality, amazing quality, very aesthetic, pov, first person, looking at viewer, foreground, black leather car seat edge visible, 1girl, mature female, pale skin, dark eyes, long black hair, messy high ponytail, dark wool coat, white silk blouse, (tear-streaked face:1.2), anxious expression, sitting sideways, holding blanket, reaching toward viewer, car interior, tinted windows, night, blurred city lights, soft amber lighting, depth of field\\">
+
+EXAMPLE — Multiple Characters:
+<img prompt=\\"masterpiece, best quality, amazing quality, very aesthetic, pov, first person, looking at viewer, foreground, messy white bedsheets visible, 3girls, BREAK, 1girl mature female, pale skin, dark eyes, long black hair, messy high ponytail, dark wool coat, white silk blouse, tear-streaked face, anxious expression, sitting sideways, holding blanket, reaching toward viewer, on the left, BREAK, 1girl rabbit girl, kemonomimi, long blonde hair, white rabbit ears, pale skin, blue eyes, black white french maid outfit, maid headdress, nervous expression, hands clasped near mouth, in the center, BREAK, 1girl demon girl, pale skin, short black hair, red eyes, red oni horns, dark blue maid dress, white apron, stoic expression, holding red velvet slippers, on the right, lavish bedroom, ornate furniture, chandelier, warm golden lighting, depth of field\\">`,
+  rulesSdCinematic: `Build the prompt as classic Stable Diffusion tag soup: flat comma-separated tags, NO full sentences. Do NOT rearrange sections.
+
+**SECTION 1 — Quality + Camera:**
+Start: masterpiece, best quality, amazing quality, very aesthetic, cinematic,
+Then camera/framing tags (pick to fit the scene):
+- Wide: wide shot, full body,
+- Medium: medium shot, upper body,
+- Close: close-up, face focus,
+- Dramatic: dutch angle, low angle, high angle,
+
+**SECTION 2 — Character Count:**
+Booru count tags: 1girl,, 2boys,, 1boy 1girl,,
+
+**SECTION 3 — Character Tags (anti-bleed rules):**
+
+FOR SINGLE CHARACTER (1 in frame): flat comma-separated Booru tags for appearance, clothing, expression, pose. Use (emphasis:1.2) on the 2-3 most important traits.
+
+FOR MULTIPLE CHARACTERS (2+ in frame): group each character's tags together and separate the groups with BREAK, e.g.,
+1girl elf, long silver hair, pointed ears, BREAK 1girl dwarf, red braided hair,
+so features do not bleed between characters. Add spatial tags inside each group (on the left,, in the center,, behind her,).
+
+**SECTION 4 — Scene + Lighting (always last):**
+Background, lighting, atmosphere tags: cinematic lighting, volumetric lighting, rim lighting, god rays, lens flare, dramatic shadows, backlighting,
+
+**BANS:** No full sentences. No first-person POV tags in this template.`,
+  examplesSdCinematic: `EXAMPLE — Single Character Cinematic:
+<img prompt=\\"masterpiece, best quality, amazing quality, very aesthetic, cinematic, low angle, full body, 1girl, young woman, dark skin, amber eyes, long white hair, loose waves, gold circlet, white draped toga, gold belt, bare feet, (determined expression:1.2), standing on cliff edge, arms at sides, fists clenched, wind, flowing hair, mountainous desert, ancient ruins, golden hour, volumetric lighting, rim lighting, dramatic shadows, dust particles\\">
+
+EXAMPLE — Multiple Characters Cinematic:
+<img prompt=\\"masterpiece, best quality, amazing quality, very aesthetic, cinematic, wide shot, 2girls, BREAK, 1girl tall elf, long silver hair, pointed ears, pale skin, green eyes, dark leather armor, hooded cloak, cautious expression, holding bow, on the left, BREAK, 1girl short dwarf woman, tan skin, brown eyes, thick red braided hair, dented iron plate armor, fur pauldrons, grinning, resting warhammer on shoulder, on the right, rain-soaked cobblestone street, medieval town, night, tavern windows, volumetric fog, rim lighting, puddle reflections, dramatic shadows\\">`,
+  rulesSdPortrait: `Build the prompt as classic Stable Diffusion tag soup: flat comma-separated tags, NO full sentences. Do NOT rearrange sections.
+
+**SECTION 1 — Quality + Framing:**
+Start: masterpiece, best quality, amazing quality, very aesthetic, portrait,
+Then framing (pick one):
+- upper body, (chest and up)
+- head and shoulders, (shoulders and up)
+- close-up, face only, (face only)
+
+**SECTION 2 — Character Count:**
+Always 1girl, or 1boy, or 1other,.
+
+**SECTION 3 — Character Tags:**
+Flat comma-separated Booru tags covering ALL of:
+- Species/race, age bracket, body type
+- Skin tone, eye color and shape, hair color/length/style
+- Clothing and accessories visible in frame
+- Facial expression, head tilt, gaze direction
+- Any held items visible in frame
+Use (emphasis:1.2) on the 2-3 most defining traits.
+
+**SECTION 4 — Background + Lighting (always last):**
+Simple backgrounds: simple background, gradient background, dark background, blurred background,
+Then lighting: soft lighting, studio lighting, natural lighting, side lighting,
+
+**BANS:** No full sentences. No full-body shots. No complex scenes. One character only.`,
+  examplesSdPortrait: `EXAMPLE — Character Portrait:
+<img prompt=\\"masterpiece, best quality, amazing quality, very aesthetic, portrait, upper body, 1girl, young woman, elf, pointed ears, pale skin, freckles, bright green eyes, long auburn hair, loose side braid, silver leaf earrings, dark green wool tunic, brown leather vest, high collar, (gentle smile:1.2), head tilt, looking at viewer, holding glowing blue flower, blurred forest background, dappled natural lighting, soft focus\\">`
 };
 
 // src/shared/prompts/npcBank.js
@@ -37585,10 +37671,13 @@ ${ct.content}`;
       const map = {
         illus_pov: ["rulesIllusPov", "examplesIllusPov"],
         sdxl_pov: ["rulesSdxlPov", "examplesSdxlPov"],
+        sd_pov: ["rulesSdPov", "examplesSdPov"],
         illus_cinematic: ["rulesIllusCinematic", "examplesIllusCinematic"],
         sdxl_cinematic: ["rulesSdxlCinematic", "examplesSdxlCinematic"],
+        sd_cinematic: ["rulesSdCinematic", "examplesSdCinematic"],
         illus_portrait: ["rulesIllusPortrait", "examplesIllusPortrait"],
-        sdxl_portrait: ["rulesSdxlPortrait", "examplesSdxlPortrait"]
+        sdxl_portrait: ["rulesSdxlPortrait", "examplesSdxlPortrait"],
+        sd_portrait: ["rulesSdPortrait", "examplesSdPortrait"]
       };
       let rules = "", examples = "";
       const keys = map[tmpl];
@@ -39937,7 +40026,7 @@ function renderImageGen(c) {
                 </div>
                 <div>
                     <h2>Image Generation</h2>
-                    <p>ComfyUI integration for automatic scene rendering.</p>
+                    <p>Automatic scene rendering via your image server (ComfyUI or SwarmUI).</p>
                 </div>
             </div>
             <div id="ig_header_badge" class="mtab-header-badge" style="background: ${s.enabled ? "rgba(16,185,129,0.12)" : "rgba(255,255,255,0.06)"}; color: ${s.enabled ? "#10b981" : "var(--text-muted)"}; border: 1px solid ${s.enabled ? "rgba(16,185,129,0.25)" : "var(--border-color)"};">
@@ -39947,7 +40036,7 @@ function renderImageGen(c) {
 
         <div class="mtab-callout blue" style="margin-bottom: 16px;">
             <i class="fa-solid fa-book-open"></i>
-            <span><strong>New to this? There's a setup guide.</strong> Getting ComfyUI talking to
+            <span><strong>New to this? There's a setup guide.</strong> Getting ComfyUI (or SwarmUI) talking to
             SillyTavern is the hard part, and none of the settings below matter until it is.
             <a href="https://www.reddit.com/r/SillyTavernAI/comments/1u87agq/tutorial_how_to_setup_inline_image_generation_in/"
                target="_blank" rel="noopener noreferrer"
@@ -39959,7 +40048,7 @@ function renderImageGen(c) {
         <div class="mtab-toggle-row ${s.enabled ? "active" : ""}" id="ig_enable_card" style="margin-bottom: 20px;">
             <div class="toggle-info">
                 <div class="toggle-label"><i class="fa-solid fa-image" style="color:#06b6d4;"></i> Enable Image Generation</div>
-                <div class="toggle-desc">Activate ComfyUI integration for this specific character/group.</div>
+                <div class="toggle-desc">Activate image generation for this specific character/group.</div>
             </div>
             <div class="ps-switch"></div>
         </div>
@@ -39983,7 +40072,14 @@ function renderImageGen(c) {
             
             <!-- Connection & Workflow -->
             <div class="mtab-panel" style="margin-bottom:16px;">
-                <div class="mtab-panel-title blue"><i class="fa-solid fa-link"></i> ComfyUI Server & Workflow</div>
+                <div class="mtab-panel-title blue"><i class="fa-solid fa-link"></i> Image Server & Workflow <span id="ig_provider_badge" class="mtab-header-badge" style="margin-left: 8px; font-size: 0.65rem; background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid var(--border-color);">…</span></div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px;">Generation runs through your Lumiverse image connection (ComfyUI or SwarmUI). The direct URL and workflow list below are ComfyUI-only extras.</div>
+                <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+                    <label for="ig_connection" style="font-size:0.75rem; color:var(--text-muted);">Image connection:</label>
+                    <select id="ig_connection" class="mtab-input" style="flex:1; min-width:200px;">
+                        <option value="">Loading…</option>
+                    </select>
+                </div>
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <input type="text" id="ig_url" class="ps-modern-input" value="${s.comfyUrl}" placeholder="http://127.0.0.1:8188" style="flex: 1;" />
                     <button id="ig_test_btn" class="ps-modern-btn secondary" style="padding: 0 15px;"><i class="fa-solid fa-wifi"></i> Test</button>
@@ -40046,10 +40142,13 @@ function renderImageGen(c) {
                             <select id="ig_template" class="ps-modern-input" style="padding: 8px; font-size: 0.8rem; cursor: pointer;">
                                 <option value="illus_cinematic" ${s.promptTemplate === "illus_cinematic" ? "selected" : ""}>Illustrious/Anima + Cinematic</option>
                                 <option value="sdxl_cinematic" ${s.promptTemplate === "sdxl_cinematic" ? "selected" : ""}>Z Image + Cinematic</option>
+                                <option value="sd_cinematic" ${s.promptTemplate === "sd_cinematic" ? "selected" : ""}>SD + Cinematic</option>
                                 <option value="illus_pov" ${s.promptTemplate === "illus_pov" ? "selected" : ""}>Illustrious/Anima + POV</option>
                                 <option value="sdxl_pov" ${s.promptTemplate === "sdxl_pov" ? "selected" : ""}>Z Image + POV</option>
+                                <option value="sd_pov" ${s.promptTemplate === "sd_pov" ? "selected" : ""}>SD + POV</option>
                                 <option value="illus_portrait" ${s.promptTemplate === "illus_portrait" ? "selected" : ""}>Illustrious/Anima + Portrait</option>
                                 <option value="sdxl_portrait" ${s.promptTemplate === "sdxl_portrait" ? "selected" : ""}>Z Image + Portrait</option>
+                                <option value="sd_portrait" ${s.promptTemplate === "sd_portrait" ? "selected" : ""}>SD + Portrait</option>
                             </select>
                         </div>
                         <div style="flex: 1; min-width: 100px;">
@@ -40187,14 +40286,20 @@ function renderImageGen(c) {
       { key: "examplesIllusPov", label: "Examples: Illustrious + POV", hint: "" },
       { key: "rulesSdxlPov", label: "Rules: Z Image + POV", hint: "" },
       { key: "examplesSdxlPov", label: "Examples: Z Image + POV", hint: "" },
+      { key: "rulesSdPov", label: "Rules: SD + POV", hint: "" },
+      { key: "examplesSdPov", label: "Examples: SD + POV", hint: "" },
       { key: "rulesIllusCinematic", label: "Rules: Illustrious + Cinematic", hint: "" },
       { key: "examplesIllusCinematic", label: "Examples: Illustrious + Cinematic", hint: "" },
       { key: "rulesSdxlCinematic", label: "Rules: Z Image + Cinematic", hint: "" },
       { key: "examplesSdxlCinematic", label: "Examples: Z Image + Cinematic", hint: "" },
+      { key: "rulesSdCinematic", label: "Rules: SD + Cinematic", hint: "" },
+      { key: "examplesSdCinematic", label: "Examples: SD + Cinematic", hint: "" },
       { key: "rulesIllusPortrait", label: "Rules: Illustrious + Portrait", hint: "" },
       { key: "examplesIllusPortrait", label: "Examples: Illustrious + Portrait", hint: "" },
       { key: "rulesSdxlPortrait", label: "Rules: Z Image + Portrait", hint: "" },
-      { key: "examplesSdxlPortrait", label: "Examples: Z Image + Portrait", hint: "" }
+      { key: "examplesSdxlPortrait", label: "Examples: Z Image + Portrait", hint: "" },
+      { key: "rulesSdPortrait", label: "Rules: SD + Portrait", hint: "" },
+      { key: "examplesSdPortrait", label: "Examples: SD + Portrait", hint: "" }
     ],
     onSave: (val, key) => {
       if (!s.customPrompts)
@@ -40288,6 +40393,11 @@ function renderImageGen(c) {
   $("#ig_save_character").on("change", (e) => {
     s.saveToCharacterId = $(e.target).val() || "";
     saveProfileToMemory();
+  });
+  $("#ig_connection").on("change", (e) => {
+    s.connectionId = $(e.target).val() || "";
+    saveProfileToMemory();
+    igRefreshProviderBadge();
   });
   $("#ig_trigger_mode").on("change", (e) => {
     s.triggerMode = $(e.target).val();
@@ -40471,7 +40581,39 @@ function renderImageGen(c) {
     igPopulateWorkflows();
     igFetchComfyLists();
     igPopulateSaveToCharacter();
+    igPopulateConnections();
   }
+}
+async function igGetActiveImageConnection() {
+  try {
+    const s = localProfile.imageGen;
+    const conns = await call("image:connections", {}, { timeout: 15000 });
+    if (!Array.isArray(conns) || !conns.length)
+      return null;
+    if (s.connectionId) {
+      const match = conns.find((c) => c.id === s.connectionId);
+      if (match)
+        return match;
+    }
+    const def = conns.find((c) => c.isDefault || c.is_default);
+    return def || conns[0];
+  } catch (e) {
+    console.error("[ig] image:connections lookup failed:", e);
+    return null;
+  }
+}
+async function igRefreshProviderBadge() {
+  const badge = $("#ig_provider_badge");
+  if (!badge.length)
+    return;
+  const conn = await igGetActiveImageConnection();
+  if (!conn) {
+    badge.text("no image connection").css({ color: "var(--text-muted)" });
+    return;
+  }
+  const prov = String(conn.provider || "image").toLowerCase();
+  badge.text(prov === "swarmui" ? "SwarmUI" : prov === "comfyui" ? "ComfyUI" : prov);
+  badge.css({ color: "var(--text-primary)" });
 }
 async function igFetchComfyLists() {
   const s = localProfile.imageGen;
@@ -40559,6 +40701,34 @@ function igResolveSaveTarget() {
     return { characterId: null, name: chatName };
   const known = igCharacterList.find((c) => c.id === id);
   return { characterId: id, name: known ? known.name : chatName };
+}
+async function igPopulateConnections() {
+  const sel = $("#ig_connection");
+  const s = localProfile.imageGen;
+  let conns = [];
+  try {
+    conns = await call("image:connections", {}, { timeout: 15000 }) || [];
+  } catch (e) {
+    console.warn("[Megumin-Suite] image:connections failed", e);
+  }
+  sel.empty();
+  sel.append($("<option>").attr("value", "").text("Lumiverse default"));
+  for (const c of conns) {
+    const prov = String(c.provider || "image").toLowerCase();
+    const label = prov === "swarmui" ? "SwarmUI" : prov === "comfyui" ? "ComfyUI" : prov;
+    sel.append($("<option>").attr("value", c.id).text(`${c.name || c.id} (${label})`));
+  }
+  const saved = (s.connectionId || "").trim();
+  if (saved && conns.some((c) => c.id === saved)) {
+    sel.val(saved);
+  } else {
+    if (saved) {
+      s.connectionId = "";
+      saveProfileToMemory();
+    }
+    sel.val("");
+  }
+  igRefreshProviderBadge();
 }
 async function describeComfyNodeType(classType) {
   const url = localProfile?.imageGen?.comfyUrl;
@@ -40857,7 +41027,7 @@ function addKazumaRetryButtons(msgIndex) {
         reloadCurrentChat();
       }
       toastr.info("Regenerating inline image...");
-      igGenerateWithComfy(prompt2, { message: msg, index: currentMsgIndex, mode: "inline", isInlineAuto: true, placeholderId: wrapperId });
+      igGenerateImage(prompt2, { message: msg, index: currentMsgIndex, mode: "inline", isInlineAuto: true, placeholderId: wrapperId });
     });
     wrapper.appendChild(btn);
   });
@@ -40869,48 +41039,9 @@ function kazumaRetrySweep(msgIndex) {
     } catch (e) {}
   }, ms));
 }
-async function igGenerateWithComfy(positivePrompt, target = null) {
+function igPreparePrompt(promptText) {
   const s = localProfile.imageGen;
-  let finalPrompt = positivePrompt;
-  const igChatId = getContext().chatId ?? null;
-  const igGroupId = getContext().groupId ?? null;
-  const igResolveTarget = () => {
-    const ctx = getContext();
-    if ((ctx.chatId ?? null) !== igChatId || (ctx.groupId ?? null) !== igGroupId)
-      return false;
-    if (!target || !target.message)
-      return true;
-    const chat = ctx.chat;
-    if (!Array.isArray(chat))
-      return false;
-    if (chat[target.index] === target.message)
-      return true;
-    const moved = chat.indexOf(target.message);
-    if (moved !== -1) {
-      target.index = moved;
-      return true;
-    }
-    if (target.placeholderId) {
-      const byId = chat.findIndex((m) => typeof m?.mes === "string" && m.mes.includes(target.placeholderId));
-      if (byId !== -1) {
-        target.message = chat[byId];
-        target.index = byId;
-        return true;
-      }
-    }
-    if (target.message.send_date !== undefined) {
-      const byStamp = chat.findIndex((m) => m?.send_date === target.message.send_date && m?.name === target.message.name && !!m?.is_user === !!target.message.is_user);
-      if (byStamp !== -1) {
-        target.message = chat[byStamp];
-        target.index = byStamp;
-        return true;
-      }
-    }
-    return false;
-  };
-  const igDeclineWrite = (what) => {
-    console.debug(`[Megumin-Suite] Image gen ${what} declined: it was started for chat "${igChatId}" message ${target?.index}, which is no longer reachable in the open chat. Nothing was written, so no unrelated message was edited. Any leftover "[Generating Image...]" placeholder in the original chat is cosmetic and clears on the next edit of that message.`);
-  };
+  let finalPrompt = promptText;
   let loraTriggers = [];
   if (s.selectedLora && s.selectedLora.trim() !== "" && s.loraTrigger1)
     loraTriggers.push(s.loraTrigger1.trim());
@@ -40932,29 +41063,36 @@ async function igGenerateWithComfy(positivePrompt, target = null) {
       prefix += ",";
     finalPrompt = prefix + " " + finalPrompt;
   }
-  if (s.previewPrompt) {
-    $("#kazuma_progress_overlay").hide();
-    const $content = $(`
-            <div style="display:flex; flex-direction:column; gap:10px; font-family: 'Inter', sans-serif;">
-                <div style="font-size: 0.85rem; color: var(--text-muted);">Review or modify the prompt before it goes to ComfyUI.</div>
-                <textarea class="ps-modern-input ig-preview-textarea" style="height: 150px; resize: vertical; font-family: monospace; font-size: 0.85rem; padding: 10px;">${finalPrompt}</textarea>
-            </div>
-        `);
-    let liveText = finalPrompt;
-    $content.find(".ig-preview-textarea").on("input", function() {
-      liveText = $(this).val();
-    });
-    const popup = new Popup($content, POPUP_TYPE.CONFIRM, "Preview Image Prompt", { okButton: "Send to ComfyUI", cancelButton: "Cancel", wide: true });
-    const confirmed = await popup.show();
-    if (!confirmed) {
-      toastr.info("Generation cancelled.");
-      return;
-    }
-    finalPrompt = liveText.trim();
-    if (!finalPrompt)
-      return toastr.warning("Prompt cannot be empty.");
-    showKazumaProgress("Preparing to Render...");
+  return finalPrompt;
+}
+async function igPreviewPromptText(finalPrompt) {
+  $("#kazuma_progress_overlay").hide();
+  const $content = $(`
+        <div style="display:flex; flex-direction:column; gap:10px; font-family: 'Inter', sans-serif;">
+            <div style="font-size: 0.85rem; color: var(--text-muted);">Review or modify the prompt before it is sent for generation.</div>
+            <textarea class="ps-modern-input ig-preview-textarea" style="height: 150px; resize: vertical; font-family: monospace; font-size: 0.85rem; padding: 10px;">${finalPrompt}</textarea>
+        </div>
+    `);
+  let liveText = finalPrompt;
+  $content.find(".ig-preview-textarea").on("input", function() {
+    liveText = $(this).val();
+  });
+  const popup = new Popup($content, POPUP_TYPE.CONFIRM, "Preview Image Prompt", { okButton: "Generate", cancelButton: "Cancel", wide: true });
+  const confirmed = await popup.show();
+  if (!confirmed) {
+    toastr.info("Generation cancelled.");
+    return null;
   }
+  const edited = liveText.trim();
+  if (!edited) {
+    toastr.warning("Prompt cannot be empty.");
+    return null;
+  }
+  showKazumaProgress("Preparing to Render...");
+  return edited;
+}
+async function igLoadAndBindWorkflow(finalPrompt) {
+  const s = localProfile.imageGen;
   let workflowRaw;
   try {
     const res = await comfyFetch("/api/sd/comfy/workflow", { method: "POST", headers: getRequestHeaders(), body: JSON.stringify({ file_name: s.currentWorkflowName }) });
@@ -40962,7 +41100,7 @@ async function igGenerateWithComfy(positivePrompt, target = null) {
       throw new Error("Load failed");
     workflowRaw = await res.json();
   } catch (e) {
-    return toastr.error(`Could not load ${s.currentWorkflowName}`);
+    throw new Error(`Could not load ${s.currentWorkflowName}`);
   }
   let workflow = typeof workflowRaw === "string" ? JSON.parse(workflowRaw) : workflowRaw;
   let finalSeed = parseInt(s.customSeed);
@@ -40988,9 +41126,175 @@ async function igGenerateWithComfy(positivePrompt, target = null) {
       { name: s.selectedLora4, weight: s.selectedLoraWt4 }
     ]
   });
-  workflow = bound.workflow;
   if (bound.warnings.length > 0) {
     console.warn(`[Megumin Suite] workflow binding warnings for ${s.currentWorkflowName}:`, bound.warnings);
+  }
+  return { workflow: bound.workflow, finalSeed };
+}
+function igResolveTargetInChat(chatId, groupId, target) {
+  const ctx = getContext();
+  if ((ctx.chatId ?? null) !== chatId || (ctx.groupId ?? null) !== groupId)
+    return false;
+  if (!target || !target.message)
+    return true;
+  const chat = ctx.chat;
+  if (!Array.isArray(chat))
+    return false;
+  if (chat[target.index] === target.message)
+    return true;
+  const moved = chat.indexOf(target.message);
+  if (moved !== -1) {
+    target.index = moved;
+    return true;
+  }
+  if (target.placeholderId) {
+    const byId = chat.findIndex((m) => typeof m?.mes === "string" && m.mes.includes(target.placeholderId));
+    if (byId !== -1) {
+      target.message = chat[byId];
+      target.index = byId;
+      return true;
+    }
+  }
+  if (target.message.send_date !== undefined) {
+    const byStamp = chat.findIndex((m) => m?.send_date === target.message.send_date && m?.name === target.message.name && !!m?.is_user === !!target.message.is_user);
+    if (byStamp !== -1) {
+      target.message = chat[byStamp];
+      target.index = byStamp;
+      return true;
+    }
+  }
+  return false;
+}
+function igDeclineWriteInChat(what, chatId, target) {
+  console.debug(`[Megumin-Suite] Image gen ${what} declined: it was started for chat "${chatId}" message ${target?.index}, which is no longer reachable in the open chat. Nothing was written, so no unrelated message was edited. Any leftover "[Generating Image...]" placeholder in the original chat is cosmetic and clears on the next edit of that message.`);
+}
+function igCompressDataUrl(base64Raw) {
+  const s = localProfile.imageGen;
+  if (!s.compressImages)
+    return Promise.resolve({ dataUrl: base64Raw, format: "png" });
+  return new Promise((res) => {
+    const img = new Image;
+    img.src = base64Raw;
+    img.onload = () => {
+      const cvs = document.createElement("canvas");
+      cvs.width = img.width;
+      cvs.height = img.height;
+      cvs.getContext("2d").drawImage(img, 0, 0);
+      res({ dataUrl: cvs.toDataURL("image/jpeg", 0.9), format: "jpeg" });
+    };
+    img.onerror = () => res({ dataUrl: base64Raw, format: "png" });
+  });
+}
+async function igInsertGeneratedImage({ base64Clean, format, finalPrompt, target, chatId, groupId }) {
+  if (!igResolveTargetInChat(chatId, groupId, target)) {
+    igDeclineWriteInChat("insert", chatId, target);
+    return;
+  }
+  const saveTarget = igResolveSaveTarget();
+  const charName = saveTarget.name;
+  const savedPath = await saveBase64AsFile(base64Clean.split(",")[1], charName, `${charName}_${humanizedDateTime()}`, format, saveTarget.characterId || undefined);
+  const mediaAttach = {
+    url: savedPath,
+    type: "image",
+    source: "generated",
+    title: finalPrompt,
+    generation_type: "free"
+  };
+  if (target && target.isInlineAuto && target.mode === "inline") {
+    const safePrompt = finalPrompt.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    const wrapperId = target.placeholderId || `kazuma-img-${Date.now()}`;
+    const imgTag = `<!-- kazuma-inline-start:${wrapperId} --><div id="${wrapperId}" class="kazuma-img-wrapper">
+<img src="${savedPath}" title="${safePrompt}" alt="KazumaInline" data-kazumaid="${wrapperId}" style="max-width: 100%; border-radius: 8px; display: block;" />
+</div><!-- kazuma-inline-end:${wrapperId} -->`;
+    if (target.placeholderId && target.message.mes.includes(`id="${target.placeholderId}"`)) {
+      const specificPlaceholderRegex = new RegExp(`<div id="${target.placeholderId}"[^>]*>.*?<\\/div>`, "g");
+      target.message.mes = target.message.mes.replace(specificPlaceholderRegex, imgTag);
+    } else {
+      const placeholderRegex = /<div class="kazuma-img-placeholder"[^>]*>\[(Generating|Regenerating) Image\.\.\.\]<\/div>/g;
+      if (placeholderRegex.test(target.message.mes)) {
+        target.message.mes = target.message.mes.replace(placeholderRegex, imgTag);
+      } else {
+        target.message.mes += `
+
+${imgTag}`;
+      }
+    }
+    kazumaRetrySweep(target.index);
+    await saveChat();
+    if (typeof updateMessageBlock === "function") {
+      updateMessageBlock(target.index, target.message);
+      meguminScheduleBlocksRefresh();
+    } else {
+      await reloadCurrentChat();
+    }
+    toastr.success("Image injected inline!");
+  } else if (target && target.message && !target.isInlineAuto) {
+    if (!target.message.extra)
+      target.message.extra = {};
+    if (!target.message.extra.media)
+      target.message.extra.media = [];
+    target.message.extra.media_display = "gallery";
+    target.message.extra.media.push(mediaAttach);
+    target.message.extra.media_index = target.message.extra.media.length - 1;
+    if (typeof appendMediaToMessage === "function")
+      appendMediaToMessage(target.message, target.element);
+    await saveChat();
+    toastr.success("Gallery updated!");
+  } else {
+    const newMsg = { name: "Image Gen Kazuma", is_user: false, is_system: true, send_date: Date.now(), mes: "", extra: { media: [mediaAttach], media_display: "gallery", media_index: 0 }, force_avatar: "img/five.png" };
+    getContext().chat.push(newMsg);
+    await saveChat();
+    if (typeof addOneMessage === "function")
+      addOneMessage(newMsg);
+    else
+      await reloadCurrentChat();
+    toastr.success("Image inserted!");
+  }
+}
+async function igWriteInlineFailure({ target, finalPrompt, message, chatId, groupId }) {
+  if (!target || !target.isInlineAuto || target.mode !== "inline")
+    return;
+  if (!igResolveTargetInChat(chatId, groupId, target)) {
+    igDeclineWriteInChat("failure notice", chatId, target);
+    return;
+  }
+  const wrapperId = target.placeholderId || `kazuma-img-${Date.now()}`;
+  const safePrompt = finalPrompt.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  const label = message ? `[Image Generation Failed: ${message}]` : `[Image Generation Failed]`;
+  const failTag = `<!-- kazuma-inline-start:${wrapperId} --><div id="${wrapperId}" class="kazuma-img-wrapper" style="color:#ef4444; font-style: italic; margin: 10px 0;"><span>${label}</span> <img alt="KazumaInline" data-kazumaid="${wrapperId}" title="${safePrompt}" style="display:none;" /></div><!-- kazuma-inline-end:${wrapperId} -->`;
+  if (target.placeholderId && target.message.mes.includes(`id="${target.placeholderId}"`)) {
+    const specificPlaceholderRegex = new RegExp(`<div id="${target.placeholderId}"[^>]*>.*?<\\/div>`, "g");
+    target.message.mes = target.message.mes.replace(specificPlaceholderRegex, failTag);
+  } else {
+    const placeholderRegex = /<div class="kazuma-img-placeholder"[^>]*>\[(Generating|Regenerating) Image\.\.\.\]<\/div>/g;
+    target.message.mes = target.message.mes.replace(placeholderRegex, failTag);
+  }
+  kazumaRetrySweep(target.index);
+  saveChat();
+  if (typeof updateMessageBlock === "function") {
+    updateMessageBlock(target.index, target.message);
+    meguminScheduleBlocksRefresh();
+  }
+}
+async function igGenerateWithComfy(positivePrompt, target = null) {
+  const s = localProfile.imageGen;
+  let finalPrompt = positivePrompt;
+  const igChatId = getContext().chatId ?? null;
+  const igGroupId = getContext().groupId ?? null;
+  let workflow;
+  try {
+    finalPrompt = igPreparePrompt(positivePrompt);
+    if (s.previewPrompt) {
+      const previewed = await igPreviewPromptText(finalPrompt);
+      if (previewed === null) {
+        $("#kazuma_progress_overlay").hide();
+        return;
+      }
+      finalPrompt = previewed;
+    }
+    ({ workflow } = await igLoadAndBindWorkflow(finalPrompt));
+  } catch (e) {
+    return toastr.error(e.message);
   }
   const comfyClientId = makeComfyClientId();
   const progress = openComfyProgressSocket(s.comfyUrl, comfyClientId, {
@@ -41028,114 +41332,14 @@ async function igGenerateWithComfy(positivePrompt, target = null) {
               r.onloadend = () => res(r.result);
               r.readAsDataURL(blob);
             });
-            let base64Clean = base64Raw;
-            let format = "png";
-            if (s.compressImages) {
-              base64Clean = await new Promise((res) => {
-                const img = new Image;
-                img.src = base64Raw;
-                img.onload = () => {
-                  const cvs = document.createElement("canvas");
-                  cvs.width = img.width;
-                  cvs.height = img.height;
-                  cvs.getContext("2d").drawImage(img, 0, 0);
-                  res(cvs.toDataURL("image/jpeg", 0.9));
-                };
-                img.onerror = () => res(base64Raw);
-              });
-              format = "jpeg";
-            }
-            if (!igResolveTarget()) {
-              igDeclineWrite("insert");
-              progress.close();
-              $("#kazuma_progress_overlay").hide();
-              return;
-            }
-            const saveTarget = igResolveSaveTarget();
-            const charName = saveTarget.name;
-            const savedPath = await saveBase64AsFile(base64Clean.split(",")[1], charName, `${charName}_${humanizedDateTime()}`, format, saveTarget.characterId || undefined);
-            const mediaAttach = {
-              url: savedPath,
-              type: "image",
-              source: "generated",
-              title: finalPrompt,
-              generation_type: "free"
-            };
-            if (target && target.isInlineAuto && target.mode === "inline") {
-              const safePrompt = finalPrompt.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-              const wrapperId = target.placeholderId || `kazuma-img-${Date.now()}`;
-              const imgTag = `<!-- kazuma-inline-start:${wrapperId} --><div id="${wrapperId}" class="kazuma-img-wrapper">
-<img src="${savedPath}" title="${safePrompt}" alt="KazumaInline" data-kazumaid="${wrapperId}" style="max-width: 100%; border-radius: 8px; display: block;" />
-</div><!-- kazuma-inline-end:${wrapperId} -->`;
-              if (target.placeholderId && target.message.mes.includes(`id="${target.placeholderId}"`)) {
-                const specificPlaceholderRegex = new RegExp(`<div id="${target.placeholderId}"[^>]*>.*?</div>`, "g");
-                target.message.mes = target.message.mes.replace(specificPlaceholderRegex, imgTag);
-              } else {
-                const placeholderRegex = /<div class="kazuma-img-placeholder"[^>]*>\[(Generating|Regenerating) Image\.\.\.\]<\/div>/g;
-                if (placeholderRegex.test(target.message.mes)) {
-                  target.message.mes = target.message.mes.replace(placeholderRegex, imgTag);
-                } else {
-                  target.message.mes += `
-
-${imgTag}`;
-                }
-              }
-              kazumaRetrySweep(target.index);
-              await saveChat();
-              if (typeof updateMessageBlock === "function") {
-                updateMessageBlock(target.index, target.message);
-                meguminScheduleBlocksRefresh();
-              } else {
-                await reloadCurrentChat();
-              }
-              toastr.success("Image injected inline!");
-            } else if (target && target.message && !target.isInlineAuto) {
-              if (!target.message.extra)
-                target.message.extra = {};
-              if (!target.message.extra.media)
-                target.message.extra.media = [];
-              target.message.extra.media_display = "gallery";
-              target.message.extra.media.push(mediaAttach);
-              target.message.extra.media_index = target.message.extra.media.length - 1;
-              if (typeof appendMediaToMessage === "function")
-                appendMediaToMessage(target.message, target.element);
-              await saveChat();
-              toastr.success("Gallery updated!");
-            } else {
-              const newMsg = { name: "Image Gen Kazuma", is_user: false, is_system: true, send_date: Date.now(), mes: "", extra: { media: [mediaAttach], media_display: "gallery", media_index: 0 }, force_avatar: "img/five.png" };
-              getContext().chat.push(newMsg);
-              await saveChat();
-              if (typeof addOneMessage === "function")
-                addOneMessage(newMsg);
-              else
-                await reloadCurrentChat();
-              toastr.success("Image inserted!");
-            }
+            const { dataUrl: base64Clean, format } = await igCompressDataUrl(base64Raw);
+            await igInsertGeneratedImage({ base64Clean, format, finalPrompt, target, chatId: igChatId, groupId: igGroupId });
             progress.close();
             $("#kazuma_progress_overlay").hide();
           } else {
             progress.close();
             $("#kazuma_progress_overlay").hide();
-            if (target && target.isInlineAuto && target.mode === "inline" && !igResolveTarget()) {
-              igDeclineWrite("failure notice");
-            } else if (target && target.isInlineAuto && target.mode === "inline") {
-              const wrapperId = target.placeholderId || `kazuma-img-${Date.now()}`;
-              const safePrompt = finalPrompt.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-              const failTag = `<!-- kazuma-inline-start:${wrapperId} --><div id="${wrapperId}" class="kazuma-img-wrapper" style="color:#ef4444; font-style: italic; margin: 10px 0;"><span>[Image Generation Failed]</span> <img alt="KazumaInline" data-kazumaid="${wrapperId}" title="${safePrompt}" style="display:none;" /></div><!-- kazuma-inline-end:${wrapperId} -->`;
-              if (target.placeholderId && target.message.mes.includes(`id="${target.placeholderId}"`)) {
-                const specificPlaceholderRegex = new RegExp(`<div id="${target.placeholderId}" class="kazuma-img-placeholder"[^>]*>.*?<\\/div>`, "g");
-                target.message.mes = target.message.mes.replace(specificPlaceholderRegex, failTag);
-              } else {
-                const placeholderRegex = /<div class="kazuma-img-placeholder"[^>]*>\[(Generating|Regenerating) Image\.\.\.\]<\/div>/g;
-                target.message.mes = target.message.mes.replace(placeholderRegex, failTag);
-              }
-              kazumaRetrySweep(target.index);
-              saveChat();
-              if (typeof updateMessageBlock === "function") {
-                updateMessageBlock(target.index, target.message);
-                meguminScheduleBlocksRefresh();
-              }
-            }
+            await igWriteInlineFailure({ target, finalPrompt, message: "", chatId: igChatId, groupId: igGroupId });
           }
         }
       } catch (e) {}
@@ -41144,27 +41348,66 @@ ${imgTag}`;
     progress.close();
     $("#kazuma_progress_overlay").hide();
     toastr.error("Comfy Error: " + e.message);
-    if (target && target.isInlineAuto && target.mode === "inline" && !igResolveTarget()) {
-      igDeclineWrite("error notice");
-    } else if (target && target.isInlineAuto && target.mode === "inline") {
-      const wrapperId = target.placeholderId || `kazuma-img-${Date.now()}`;
-      const safePrompt = finalPrompt.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-      const failTag = `<!-- kazuma-inline-start:${wrapperId} --><div id="${wrapperId}" class="kazuma-img-wrapper" style="color:#ef4444; font-style: italic; margin: 10px 0;"><span>[Image Generation Failed: ${e.message}]</span> <img alt="KazumaInline" data-kazumaid="${wrapperId}" title="${safePrompt}" style="display:none;" /></div><!-- kazuma-inline-end:${wrapperId} -->`;
-      if (target.placeholderId && target.message.mes.includes(`id="${target.placeholderId}"`)) {
-        const specificPlaceholderRegex = new RegExp(`<div id="${target.placeholderId}" class="kazuma-img-placeholder"[^>]*>.*?<\\/div>`, "g");
-        target.message.mes = target.message.mes.replace(specificPlaceholderRegex, failTag);
-      } else {
-        const placeholderRegex = /<div class="kazuma-img-placeholder"[^>]*>\[(Generating|Regenerating) Image\.\.\.\]<\/div>/g;
-        target.message.mes = target.message.mes.replace(placeholderRegex, failTag);
-      }
-      kazumaRetrySweep(target.index);
-      saveChat();
-      if (typeof updateMessageBlock === "function") {
-        updateMessageBlock(target.index, target.message);
-        meguminScheduleBlocksRefresh();
-      }
-    }
+    await igWriteInlineFailure({ target, finalPrompt, message: e.message, chatId: igChatId, groupId: igGroupId });
   }
+}
+async function igGenerateViaProvider(positivePrompt, conn, target = null) {
+  const s = localProfile.imageGen;
+  let finalPrompt = positivePrompt;
+  const igChatId = getContext().chatId ?? null;
+  const igGroupId = getContext().groupId ?? null;
+  showKazumaProgress(`Sending to ${conn.provider}...`);
+  try {
+    finalPrompt = igPreparePrompt(positivePrompt);
+    if (s.previewPrompt) {
+      const previewed = await igPreviewPromptText(finalPrompt);
+      if (previewed === null) {
+        $("#kazuma_progress_overlay").hide();
+        return;
+      }
+      finalPrompt = previewed;
+    }
+    let workflow;
+    try {
+      ({ workflow } = await igLoadAndBindWorkflow(finalPrompt));
+    } catch (e) {
+      $("#kazuma_progress_overlay").hide();
+      return toastr.error(e.message);
+    }
+    showKazumaProgress(`Generating on ${conn.provider}...`);
+    const saveTarget = igResolveSaveTarget();
+    const res = await call("image:generate", {
+      prompt: finalPrompt,
+      negativePrompt: s.customNegative || "",
+      connectionId: conn.id,
+      parameters: {
+        workflow,
+        model: s.selectedModel || undefined,
+        width: s.imgWidth,
+        height: s.imgHeight,
+        steps: s.steps,
+        cfg: s.cfg
+      },
+      ownerCharacterId: saveTarget.characterId || undefined
+    }, { timeout: 300000 });
+    if (!res || !res.imageDataUrl)
+      throw new Error(res?.error || "The provider returned no image.");
+    const { dataUrl: base64Clean, format } = await igCompressDataUrl(res.imageDataUrl);
+    await igInsertGeneratedImage({ base64Clean, format, finalPrompt, target, chatId: igChatId, groupId: igGroupId });
+    $("#kazuma_progress_overlay").hide();
+    toastr.success(`Image generated via ${conn.provider}!`);
+  } catch (e) {
+    $("#kazuma_progress_overlay").hide();
+    toastr.error(`${conn.provider} error: ` + e.message);
+    await igWriteInlineFailure({ target, finalPrompt, message: e.message, chatId: igChatId, groupId: igGroupId });
+  }
+}
+async function igGenerateImage(positivePrompt, target = null) {
+  const conn = await igGetActiveImageConnection();
+  if (conn && String(conn.provider || "").toLowerCase() !== "comfyui") {
+    return igGenerateViaProvider(positivePrompt, conn, target);
+  }
+  return igGenerateWithComfy(positivePrompt, target);
 }
 registerRefreshHook(REFRESH.QUICK_GEN_BUTTON, () => toggleQuickGenButton());
 // src/frontend/ui/tabs.js
@@ -41552,8 +41795,8 @@ async function onMessageReceived() {
       const extractedPrompt = match[2];
       const uniquePlaceholderId = `kazuma-img-${batchId}-${idx}`;
       setTimeout(() => {
-        toastr.info(`Image tag ${idx + 1} detected. Sending to ComfyUI...`);
-        igGenerateWithComfy(extractedPrompt, {
+        toastr.info(`Image tag ${idx + 1} detected. Sending for generation...`);
+        igGenerateImage(extractedPrompt, {
           message: lastMsg,
           index: msgIndex,
           mode: injectMode,
@@ -41593,7 +41836,7 @@ function installDebugHandle() {
       return chat.length ? chat[chat.length - 1] : null;
     },
     tags: (text) => extractImageTags(text !== undefined ? text : (api.lastMessage() || {}).mes || ""),
-    generateImage: (prompt2) => igGenerateWithComfy(String(prompt2 || "").trim() || "a test image"),
+    generateImage: (prompt2) => igGenerateImage(String(prompt2 || "").trim() || "a test image"),
     afterReply: async () => {
       await refreshContext();
       await onMessageReceived();
