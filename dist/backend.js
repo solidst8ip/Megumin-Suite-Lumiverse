@@ -1094,6 +1094,7 @@ var DEFAULT_PROFILE = {
     triggerMode: "always",
     autoGenFreq: 1,
     previewPrompt: false,
+    saveToCharacterId: "",
     savedWorkflowStates: {},
     customPrompts: null,
     customPromptsEnabled: false
@@ -8045,6 +8046,27 @@ handle("context:load", async (_data, userId) => {
     isGenerating: false
   };
 });
+handle("characters:list", async (_data, userId) => {
+  const out = [];
+  const limit = 100;
+  let offset = 0;
+  for (;; ) {
+    const page = await spindle.characters.list({ limit, offset, userId }).catch(() => null);
+    if (!page || !Array.isArray(page.data) || page.data.length === 0)
+      break;
+    for (const c of page.data) {
+      if (c && c.id)
+        out.push({ id: c.id, name: c.name || "Unnamed" });
+    }
+    offset += page.data.length;
+    if (typeof page.total === "number" && offset >= page.total)
+      break;
+    if (page.data.length < limit)
+      break;
+  }
+  out.sort((a, b) => a.name.localeCompare(b.name));
+  return out;
+});
 handle("chat:updateMessage", async ({ messageId, message }, userId) => {
   const chatId = await getActiveChatId(userId);
   if (!chatId)
@@ -8066,15 +8088,21 @@ handle("chat:appendMessage", async ({ message }, userId) => {
     return null;
   return spindle.chat.appendMessage(chatId, message);
 });
-handle("media:saveBase64", async ({ base64, folder, filename, extension }, userId) => {
+handle("media:saveBase64", async ({ base64, folder, filename, extension, characterId }, userId) => {
   const mime = extension === "jpeg" || extension === "jpg" ? "image/jpeg" : "image/png";
   const dataUrl = String(base64).startsWith("data:") ? String(base64) : `data:${mime};base64,${base64}`;
   const chatId = await getActiveChatId(userId);
   const chat = chatId ? await spindle.chats.get(chatId, userId).catch(() => null) : null;
+  let ownerCharacterId = chat && chat.character_id || undefined;
+  if (characterId) {
+    const chosen = await spindle.characters.get(characterId, userId).catch(() => null);
+    if (chosen && chosen.id)
+      ownerCharacterId = chosen.id;
+  }
   const stored = await spindle.images.uploadFromDataUrl(dataUrl, {
     originalFilename: `${filename || "megumin"}.${extension || "png"}`,
     owner_chat_id: chatId || undefined,
-    owner_character_id: chat && chat.character_id || undefined,
+    owner_character_id: ownerCharacterId,
     userId
   });
   if (!stored || !stored.url)

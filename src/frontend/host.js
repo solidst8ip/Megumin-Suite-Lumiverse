@@ -543,8 +543,8 @@ export function humanizedDateTime() {
         + `@${pad(d.getHours())}h${pad(d.getMinutes())}m${pad(d.getSeconds())}s`;
 }
 
-export function saveBase64AsFile(base64, folder, filename, extension) {
-    return call("media:saveBase64", { base64, folder, filename, extension });
+export function saveBase64AsFile(base64, folder, filename, extension, characterId) {
+    return call("media:saveBase64", { base64, folder, filename, extension, characterId });
 }
 
 // SillyTavern's fetch helper, used by the image-generation tab when it talks to a

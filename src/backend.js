@@ -112,6 +112,27 @@ handle("context:load", async (_data, userId) => {
     };
 });
 
+// Full character roster for pickers (the image-generation tab's "save to
+// character" dropdown). context:load only ever carries the active character,
+// so anything that needs the whole list comes here instead.
+handle("characters:list", async (_data, userId) => {
+    const out = [];
+    const limit = 100;
+    let offset = 0;
+    for (;;) {
+        const page = await spindle.characters.list({ limit, offset, userId }).catch(() => null);
+        if (!page || !Array.isArray(page.data) || page.data.length === 0) break;
+        for (const c of page.data) {
+            if (c && c.id) out.push({ id: c.id, name: c.name || "Unnamed" });
+        }
+        offset += page.data.length;
+        if (typeof page.total === "number" && offset >= page.total) break;
+        if (page.data.length < limit) break;
+    }
+    out.sort((a, b) => a.name.localeCompare(b.name));
+    return out;
+});
+
 // -------------------------------------------------------------
 // Chat mutation
 // -------------------------------------------------------------
@@ -155,7 +176,7 @@ handle("chat:appendMessage", async ({ message }, userId) => {
 // the caller has after its own optional JPEG compression, and threading the
 // first upload's id through the ported compression path would mean editing code
 // this port has otherwise left alone.
-handle("media:saveBase64", async ({ base64, folder, filename, extension }, userId) => {
+handle("media:saveBase64", async ({ base64, folder, filename, extension, characterId }, userId) => {
     const mime = extension === "jpeg" || extension === "jpg" ? "image/jpeg" : "image/png";
     const dataUrl = String(base64).startsWith("data:")
         ? String(base64)
@@ -164,10 +185,20 @@ handle("media:saveBase64", async ({ base64, folder, filename, extension }, userI
     const chatId = await getActiveChatId(userId);
     const chat = chatId ? await spindle.chats.get(chatId, userId).catch(() => null) : null;
 
+    // An explicit character (the image-gen tab's "save to character" option)
+    // takes precedence over the active chat's character. It is validated rather
+    // than trusted: a stale or foreign id falls back to the chat's character
+    // instead of failing the whole save.
+    let ownerCharacterId = (chat && chat.character_id) || undefined;
+    if (characterId) {
+        const chosen = await spindle.characters.get(characterId, userId).catch(() => null);
+        if (chosen && chosen.id) ownerCharacterId = chosen.id;
+    }
+
     const stored = await spindle.images.uploadFromDataUrl(dataUrl, {
         originalFilename: `${filename || "megumin"}.${extension || "png"}`,
         owner_chat_id: chatId || undefined,
-        owner_character_id: (chat && chat.character_id) || undefined,
+        owner_character_id: ownerCharacterId,
         userId,
     });
 

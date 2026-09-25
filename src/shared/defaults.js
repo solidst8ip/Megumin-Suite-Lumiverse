@@ -148,6 +148,7 @@ export const DEFAULT_PROFILE = {
         triggerMode: "always",
         autoGenFreq: 1,
         previewPrompt: false,
+        saveToCharacterId: "",
         savedWorkflowStates: {},
         customPrompts: null,
         customPromptsEnabled: false

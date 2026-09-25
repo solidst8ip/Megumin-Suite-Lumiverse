@@ -11,6 +11,7 @@
 import { comfyFetch } from "./comfyFetch.js";
 import { bindWorkflow, formatImportedWorkflowText, widgetOrderFromObjectInfo } from "./workflowAuto.js";
 import { toastr, $, getContext, getRequestHeaders, generateQuietPrompt, saveChat, reloadCurrentChat, addOneMessage, appendMediaToMessage, updateMessageBlock, saveBase64AsFile, humanizedDateTime, Popup, POPUP_TYPE } from "../../host.js";
+import { call } from "../../bridge.js";
 import { extensionName } from "../../core/constants.js";
 import { localProfile } from "../../core/state.js";
 import { saveProfileToMemory, saveProfileDebounced } from "../../core/profile.js";
@@ -181,6 +182,15 @@ export function renderImageGen(c) {
                         </div>
                     </div>
                     <input type="text" id="ig_extra" class="ps-modern-input" placeholder="Extra Instructions (e.g. moody lighting, dark atmosphere...)" value="${s.promptExtra}" style="padding: 8px; font-size: 0.8rem;" />
+                    <div class="mtab-setting-row" style="margin-top: 15px;">
+                        <div class="set-info">
+                            <div class="set-label">Save To Character</div>
+                            <div class="set-desc">Generated images are stored under this character's assets. Defaults to the current chat's character.</div>
+                        </div>
+                        <select id="ig_save_character" class="ps-modern-input" style="width: 220px; cursor: pointer;">
+                            <option value="">Loading characters...</option>
+                        </select>
+                    </div>
                 </div>
 
             <!-- Parameters -->
@@ -317,6 +327,7 @@ export function renderImageGen(c) {
             $("#ig_main_content").slideDown(200); 
             igPopulateWorkflows(); // <-- ADDED THIS!
             igFetchComfyLists();
+            igPopulateSaveToCharacter();
             $("#ig_header_badge").css({ background: 'rgba(16,185,129,0.12)', color: '#10b981', 'border-color': 'rgba(16,185,129,0.25)' }).html(`<i class="fa-solid fa-circle-check" style="font-size:0.6rem;"></i> Enabled`);
         } else {
             $(this).removeClass("active"); $(this).css("border-color", "var(--border-color)"); $(this).find("span").css("color", "var(--text-main)");
@@ -367,6 +378,10 @@ export function renderImageGen(c) {
     });
 
     $("#ig_inject_mode").on("change", (e) => { s.injectMode = $(e.target).val(); saveProfileToMemory(); });
+    $("#ig_save_character").on("change", (e) => {
+        s.saveToCharacterId = $(e.target).val() || "";
+        saveProfileToMemory();
+    });
     $("#ig_trigger_mode").on("change", (e) => {
         s.triggerMode = $(e.target).val();
         saveProfileToMemory();
@@ -490,6 +505,7 @@ export function renderImageGen(c) {
     if (s.enabled) {
         igPopulateWorkflows();
         igFetchComfyLists();
+        igPopulateSaveToCharacter();
     }
 }
 
@@ -536,6 +552,48 @@ export function toggleQuickGenButton() {
     } else {
         $("#kazuma_quick_gen").css("display", "none");
     }
+}
+
+// Character roster for the "save to character" option, cached from the last
+// populate so generation can resolve a name without touching the DOM.
+let igCharacterList = [];
+
+// Fill the save-to-character dropdown. A saved id that no longer exists (the
+// character was deleted) falls back to the current-chat default instead of
+// pointing at a stale id.
+export async function igPopulateSaveToCharacter() {
+    const sel = $("#ig_save_character");
+    try {
+        igCharacterList = await call("characters:list") || [];
+    } catch (e) {
+        console.warn("[Megumin-Suite] characters:list failed", e);
+        igCharacterList = [];
+    }
+    sel.empty();
+    sel.append($("<option>").attr("value", "").text("Current chat character"));
+    for (const c of igCharacterList) {
+        sel.append($("<option>").attr("value", c.id).text(c.name));
+    }
+    const s = localProfile.imageGen;
+    const saved = (s.saveToCharacterId || "").trim();
+    if (saved && igCharacterList.some(c => c.id === saved)) {
+        sel.val(saved);
+    } else {
+        if (saved) { s.saveToCharacterId = ""; saveProfileToMemory(); }
+        sel.val("");
+    }
+}
+
+// Who the next generated image is saved to: the chosen character, or the
+// current chat's character when nothing is chosen.
+export function igResolveSaveTarget() {
+    const s = localProfile.imageGen;
+    const id = (s.saveToCharacterId || "").trim();
+    const ctx = getContext();
+    const chatName = ctx.characters[ctx.characterId]?.name || "User";
+    if (!id) return { characterId: null, name: chatName };
+    const known = igCharacterList.find(c => c.id === id);
+    return { characterId: id, name: known ? known.name : chatName };
 }
 
 // Describe an unknown ComfyUI node type for workflow conversion: ask the
@@ -1074,8 +1132,9 @@ export async function igGenerateWithComfy(positivePrompt, target = null) {
                             progress.close(); $("#kazuma_progress_overlay").hide();
                             return;
                         }
-                        const charName = getContext().characters[getContext().characterId]?.name || "User";
-                        const savedPath = await saveBase64AsFile(base64Clean.split(',')[1], charName, `${charName}_${humanizedDateTime()}`, format);
+                        const saveTarget = igResolveSaveTarget();
+                        const charName = saveTarget.name;
+                        const savedPath = await saveBase64AsFile(base64Clean.split(',')[1], charName, `${charName}_${humanizedDateTime()}`, format, saveTarget.characterId || undefined);
                         const mediaAttach = {
                             url: savedPath,
                             type: "image",

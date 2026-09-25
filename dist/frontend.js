@@ -6251,8 +6251,8 @@ function humanizedDateTime() {
   const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` + `@${pad(d.getHours())}h${pad(d.getMinutes())}m${pad(d.getSeconds())}s`;
 }
-function saveBase64AsFile(base64, folder, filename, extension) {
-  return call("media:saveBase64", { base64, folder, filename, extension });
+function saveBase64AsFile(base64, folder, filename, extension, characterId) {
+  return call("media:saveBase64", { base64, folder, filename, extension, characterId });
 }
 function getRequestHeaders() {
   return { "Content-Type": "application/json" };
@@ -40017,6 +40017,15 @@ function renderImageGen(c) {
                         </div>
                     </div>
                     <input type="text" id="ig_extra" class="ps-modern-input" placeholder="Extra Instructions (e.g. moody lighting, dark atmosphere...)" value="${s.promptExtra}" style="padding: 8px; font-size: 0.8rem;" />
+                    <div class="mtab-setting-row" style="margin-top: 15px;">
+                        <div class="set-info">
+                            <div class="set-label">Save To Character</div>
+                            <div class="set-desc">Generated images are stored under this character's assets. Defaults to the current chat's character.</div>
+                        </div>
+                        <select id="ig_save_character" class="ps-modern-input" style="width: 220px; cursor: pointer;">
+                            <option value="">Loading characters...</option>
+                        </select>
+                    </div>
                 </div>
 
             <!-- Parameters -->
@@ -40152,6 +40161,7 @@ function renderImageGen(c) {
       $("#ig_main_content").slideDown(200);
       igPopulateWorkflows();
       igFetchComfyLists();
+      igPopulateSaveToCharacter();
       $("#ig_header_badge").css({ background: "rgba(16,185,129,0.12)", color: "#10b981", "border-color": "rgba(16,185,129,0.25)" }).html(`<i class="fa-solid fa-circle-check" style="font-size:0.6rem;"></i> Enabled`);
     } else {
       $(this).removeClass("active");
@@ -40212,6 +40222,10 @@ function renderImageGen(c) {
   });
   $("#ig_inject_mode").on("change", (e) => {
     s.injectMode = $(e.target).val();
+    saveProfileToMemory();
+  });
+  $("#ig_save_character").on("change", (e) => {
+    s.saveToCharacterId = $(e.target).val() || "";
     saveProfileToMemory();
   });
   $("#ig_trigger_mode").on("change", (e) => {
@@ -40395,6 +40409,7 @@ function renderImageGen(c) {
   if (s.enabled) {
     igPopulateWorkflows();
     igFetchComfyLists();
+    igPopulateSaveToCharacter();
   }
 }
 async function igFetchComfyLists() {
@@ -40447,6 +40462,42 @@ function toggleQuickGenButton() {
   } else {
     $("#kazuma_quick_gen").css("display", "none");
   }
+}
+var igCharacterList = [];
+async function igPopulateSaveToCharacter() {
+  const sel = $("#ig_save_character");
+  try {
+    igCharacterList = await call("characters:list") || [];
+  } catch (e) {
+    console.warn("[Megumin-Suite] characters:list failed", e);
+    igCharacterList = [];
+  }
+  sel.empty();
+  sel.append($("<option>").attr("value", "").text("Current chat character"));
+  for (const c of igCharacterList) {
+    sel.append($("<option>").attr("value", c.id).text(c.name));
+  }
+  const s = localProfile.imageGen;
+  const saved = (s.saveToCharacterId || "").trim();
+  if (saved && igCharacterList.some((c) => c.id === saved)) {
+    sel.val(saved);
+  } else {
+    if (saved) {
+      s.saveToCharacterId = "";
+      saveProfileToMemory();
+    }
+    sel.val("");
+  }
+}
+function igResolveSaveTarget() {
+  const s = localProfile.imageGen;
+  const id = (s.saveToCharacterId || "").trim();
+  const ctx = getContext();
+  const chatName = ctx.characters[ctx.characterId]?.name || "User";
+  if (!id)
+    return { characterId: null, name: chatName };
+  const known = igCharacterList.find((c) => c.id === id);
+  return { characterId: id, name: known ? known.name : chatName };
 }
 async function describeComfyNodeType(classType) {
   const url = localProfile?.imageGen?.comfyUrl;
@@ -40939,8 +40990,9 @@ async function igGenerateWithComfy(positivePrompt, target = null) {
               $("#kazuma_progress_overlay").hide();
               return;
             }
-            const charName = getContext().characters[getContext().characterId]?.name || "User";
-            const savedPath = await saveBase64AsFile(base64Clean.split(",")[1], charName, `${charName}_${humanizedDateTime()}`, format);
+            const saveTarget = igResolveSaveTarget();
+            const charName = saveTarget.name;
+            const savedPath = await saveBase64AsFile(base64Clean.split(",")[1], charName, `${charName}_${humanizedDateTime()}`, format, saveTarget.characterId || undefined);
             const mediaAttach = {
               url: savedPath,
               type: "image",
